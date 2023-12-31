@@ -12,11 +12,7 @@ To successfully build and run this project, your development environment should 
 
 ## Notice
 
-1.Type this into terminal to get the source code.
-
-`git clone --recurse-submodules https://github.com/Wxz234/ndq.git`
-
-2.IntelliSense might be unavailable. I can not solve it.
+1.IntelliSense might be unavailable. I can not solve it.
 
 ## License
 
