@@ -35,7 +35,6 @@ namespace ndq
 
         static void ShowDemoWindow()
         {
-            
             ImGui::ShowDemoWindow();
         }
 
