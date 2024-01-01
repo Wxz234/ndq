@@ -71,28 +71,31 @@ namespace ndq
             ID3D12CommandList* Lists[1] = { pList->GetRawList() };
             if (Type == CommandListType::Graphics)
             {
-                mUsedCommandListsSignal.push_back(mGraphicsFenceValue);
+                mGraphicsUsedCommandLists.emplace_back(pList);
+                mGraphicsUsedCommandListsSignal.emplace_back(mGraphicsFenceValue);
+                ++mGraphicsUsedCommandListsCount;
                 mGraphicsQueue->ExecuteCommandLists(1, Lists);
                 mGraphicsQueue->Signal(mGraphicsFence.Get(), mGraphicsFenceValue++);
             }
             else if (Type == CommandListType::Copy)
             {
-                mUsedCommandListsSignal.push_back(mCopyFenceValue);
+                mCopyUsedCommandLists.emplace_back(pList);
+                mCopyUsedCommandListsSignal.emplace_back(mCopyFenceValue);
+                ++mCopyUsedCommandListsCount;
                 mCopyQueue->ExecuteCommandLists(1, Lists);
                 mCopyQueue->Signal(mCopyFence.Get(), mCopyFenceValue++);
             }
             else
             {
-                mUsedCommandListsSignal.push_back(mComputeFenceValue);
+                mComputeUsedCommandLists.emplace_back(pList);
+                mComputeUsedCommandListsSignal.emplace_back(mComputeFenceValue);
+                ++mComputeUsedCommandListsCount;
                 mComputeQueue->ExecuteCommandLists(1, Lists);
                 mComputeQueue->Signal(mComputeFence.Get(), mComputeFenceValue++);
             }
-
-            mUsedCommandLists.push_back(pList);
-            ++mUsedCommandListsCount;
         }
 
-        ID3D12Device* GetRawDevice() const
+        ID3D12Device4* GetRawDevice() const
         {
             return mDevice.Get();
         }
@@ -284,8 +287,6 @@ namespace ndq
             Microsoft::WRL::ComPtr<IDXGIAdapter4> Adapter;
             Factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&Adapter));
             D3D12CreateDevice(Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&mDevice));
-#ifdef _DEBUG
-#endif
             CreateInternalCMDQueue();
 
             DXGI_SWAP_CHAIN_DESC1 ScDesc{};
@@ -341,9 +342,15 @@ namespace ndq
             mStates.resize(SWAP_CHAIN_BUFFER_COUNT, D3D12_RESOURCE_STATE_PRESENT);
         }
 
-        std::vector<CommandList*> mUsedCommandLists;
-        std::vector<uint64> mUsedCommandListsSignal;
-        size_t mUsedCommandListsCount = 0;
+        std::vector<CommandList*> mGraphicsUsedCommandLists;
+        std::vector<uint64> mGraphicsUsedCommandListsSignal;
+        size_t mGraphicsUsedCommandListsCount = 0;
+        std::vector<CommandList*> mCopyUsedCommandLists;
+        std::vector<uint64> mCopyUsedCommandListsSignal;
+        size_t mCopyUsedCommandListsCount = 0;
+        std::vector<CommandList*> mComputeUsedCommandLists;
+        std::vector<uint64> mComputeUsedCommandListsSignal;
+        size_t mComputeUsedCommandListsCount = 0;
 
         friend void InitializeRHI(HWND hwnd, UINT width, UINT height);
         friend class CommandListPool;
@@ -360,191 +367,205 @@ namespace ndq
     public:
         CommandList *GetCommandList(CommandListType type)
         {
-            const std::lock_guard<std::mutex> Lock(mMutex);
-
-            std::vector<std::shared_ptr<CommandList>>* Lists;
-            std::vector<int>* Status;
-            uint32* ListsCount;
-
             if (type == CommandListType::Graphics)
             {
-                Lists = &mGraphicsLists;
-                Status = &mGraphicsListsStatus;
-                ListsCount = &mGraphicsListsCount;
+                size_t Count = mGraphicsListsAndStatus.size();
+                for (size_t i = 0; i < Count; ++i)
+                {
+                    bool Status = true;
+                    bool Result = mGraphicsListsAndStatus[i]->mStatus->compare_exchange_strong(Status, false);
+                    if (Result)
+                    {
+                        return mGraphicsListsAndStatus[i]->mCommandList;
+                    }
+                }
             }
             else if (type == CommandListType::Copy)
             {
-                Lists = &mCopyLists;
-                Status = &mCopyListsStatus;
-                ListsCount = &mCopyListsCount;
+                size_t Count = mCopyListsAndStatus.size();
+                for (size_t i = 0; i < Count; ++i)
+                {
+                    bool Status = true;
+                    bool Result = mCopyListsAndStatus[i]->mStatus->compare_exchange_strong(Status, false);
+                    if (Result)
+                    {
+                        return mCopyListsAndStatus[i]->mCommandList;
+                    }
+                }
             }
             else
             {
-                Lists = &mComputeLists;
-                Status = &mComputeListsStatus;
-                ListsCount = &mComputeListsCount;
-            }
-
-            for (uint32 i = 0;i < *ListsCount; ++i)
-            {
-                if (Status->operator[](i))
+                size_t Count = mComputeListsAndStatus.size();
+                for (size_t i = 0; i < Count; ++i)
                 {
-                    Status->operator[](i) = 0;
-                    return Lists->operator[](i).get();
+                    bool Status = true;
+                    bool Result = mComputeListsAndStatus[i]->mStatus->compare_exchange_strong(Status, false);
+                    if (Result)
+                    {
+                        return mComputeListsAndStatus[i]->mCommandList;
+                    }
                 }
             }
 
-            CreateList(type);
-
-            Status->operator[](*ListsCount - 1) = 0;
-            return Lists->operator[](*ListsCount - 1).get();
+            return _CreateList(type);
         }
     private:
-        CommandListPool(GraphicsDevice* pDevice)
+        CommandList* _CreateList(CommandListType type)
         {
-            ID3D12Device4* TempDevice;
-            pDevice->GetRawDevice()->QueryInterface(&TempDevice);
-
-            for (uint32 i = 0; i < mGraphicsListsCount; ++i)
-            {
-                Microsoft::WRL::ComPtr<ID3D12CommandAllocator> Allocator;
-                Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> List;
-                TempDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&Allocator));
-                TempDevice->CreateCommandList1(NODEMASK, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
-                mGraphicsLists.push_back(std::shared_ptr<CommandList>(new CommandList(CommandListType::Graphics, Allocator, List)));
-                mGraphicsListsStatus.push_back(1);
-            }
-
-            for (uint32 i = 0; i < mCopyListsCount; ++i)
-            {
-                Microsoft::WRL::ComPtr<ID3D12CommandAllocator> Allocator;
-                Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> List;
-                TempDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&Allocator));
-                TempDevice->CreateCommandList1(NODEMASK, D3D12_COMMAND_LIST_TYPE_COPY, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
-                mCopyLists.push_back(std::shared_ptr<CommandList>(new CommandList(CommandListType::Copy, Allocator, List)));
-                mCopyListsStatus.push_back(1);
-            }
-
-            for (uint32 i = 0; i < mComputeListsCount; ++i)
-            {
-                Microsoft::WRL::ComPtr<ID3D12CommandAllocator> Allocator;
-                Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> List;
-                TempDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(&Allocator));
-                TempDevice->CreateCommandList1(NODEMASK, D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
-                mComputeLists.push_back(std::shared_ptr<CommandList>(new CommandList(CommandListType::Compute, Allocator, List)));
-                mComputeListsStatus.push_back(1);
-            }
-            TempDevice->Release();
-        }
-
-        void CreateList(CommandListType type)
-        {
-            std::vector<std::shared_ptr<CommandList>>* Lists;
-            std::vector<int>* Status;
-            uint32* ListsCount;
+            concurrency::concurrent_vector<std::unique_ptr<CommandListAndStatus>>* ListAndStatus;
             D3D12_COMMAND_LIST_TYPE RawType;
-
             if (type == CommandListType::Graphics)
             {
-                Lists = &mGraphicsLists;
-                Status = &mGraphicsListsStatus;
-                ListsCount = &mGraphicsListsCount;
+                ListAndStatus = &mGraphicsListsAndStatus;
                 RawType = D3D12_COMMAND_LIST_TYPE_DIRECT;
             }
             else if (type == CommandListType::Copy)
             {
-                Lists = &mCopyLists;
-                Status = &mCopyListsStatus;
-                ListsCount = &mCopyListsCount;
+                ListAndStatus = &mCopyListsAndStatus;
                 RawType = D3D12_COMMAND_LIST_TYPE_COPY;
             }
             else
             {
-                Lists = &mComputeLists;
-                Status = &mComputeListsStatus;
-                ListsCount = &mComputeListsCount;
+                ListAndStatus = &mComputeListsAndStatus;
                 RawType = D3D12_COMMAND_LIST_TYPE_COMPUTE;
             }
-
             Microsoft::WRL::ComPtr<ID3D12CommandAllocator> Allocator;
             Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> List;
             GetGraphicsDevice()->mDevice->CreateCommandAllocator(RawType, IID_PPV_ARGS(&Allocator));
             GetGraphicsDevice()->mDevice->CreateCommandList1(NODEMASK, RawType, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
 
-            std::shared_ptr<CommandList> CMDList(new CommandList(type, Allocator, List));
-            Lists->push_back(CMDList);
-            Status->push_back(1);
-            ++(*ListsCount);
+            std::unique_ptr<CommandListAndStatus> TempPtr(new CommandListAndStatus(type, Allocator, List));
+            TempPtr->mStatus->store(false);
+            CommandList* TempCmdListPtr = TempPtr->mCommandList;
+            ListAndStatus->push_back(std::move(TempPtr));
+            return TempCmdListPtr;
+        }
+
+        CommandListPool()
+        {
+            Microsoft::WRL::ComPtr<ID3D12CommandAllocator> Allocator;
+            Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> List;
+
+            for (uint32 i = 0; i < 2; ++i)
+            {
+                GetGraphicsDevice()->GetRawDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(Allocator.ReleaseAndGetAddressOf()));
+                GetGraphicsDevice()->GetRawDevice()->CreateCommandList1(NODEMASK, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
+                mGraphicsListsAndStatus.push_back(std::make_unique<CommandListAndStatus>(CommandListType::Graphics, Allocator, List));
+
+                GetGraphicsDevice()->GetRawDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(Allocator.ReleaseAndGetAddressOf()));
+                GetGraphicsDevice()->GetRawDevice()->CreateCommandList1(NODEMASK, D3D12_COMMAND_LIST_TYPE_COPY, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
+                mCopyListsAndStatus.push_back(std::make_unique<CommandListAndStatus>(CommandListType::Copy, Allocator, List));
+
+                GetGraphicsDevice()->GetRawDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(Allocator.ReleaseAndGetAddressOf()));
+                GetGraphicsDevice()->GetRawDevice()->CreateCommandList1(NODEMASK, D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
+                mComputeListsAndStatus.push_back(std::make_unique<CommandListAndStatus>(CommandListType::Compute, Allocator, List));
+            }
         }
 
         void CollectInternalCommandList()
         {
-            std::vector<size_t> IndicesToRemove;
+            std::vector<size_t> GraphicsRemoveIndices;
+            std::vector<size_t> CopyRemoveIndices;
+            std::vector<size_t> ComputeRemoveIndices;
 
-            for (size_t i = 0; i < GetGraphicsDevice()->mUsedCommandListsCount; ++i)
+            for (size_t i = 0; i < GetGraphicsDevice()->mGraphicsUsedCommandListsCount; ++i)
             {
-                auto ListType = GetGraphicsDevice()->mUsedCommandLists[i]->GetType();
-
-                if (ListType == CommandListType::Graphics)
+                for (size_t j = 0; j < mGraphicsListsAndStatus.size(); ++j)
                 {
-                    auto CompletedValue = GetGraphicsDevice()->mGraphicsFence->GetCompletedValue();
-                    for (size_t j = 0; j < mGraphicsListsCount; ++j)
+                    if(
+                        GetGraphicsDevice()->mGraphicsUsedCommandLists[i] == mGraphicsListsAndStatus[j]->mCommandList && 
+                        GetGraphicsDevice()->mGraphicsUsedCommandListsSignal[i] < GetGraphicsDevice()->mGraphicsFence->GetCompletedValue()
+                    )
                     {
-                        if (mGraphicsLists[j].get() == GetGraphicsDevice()->mUsedCommandLists[i] && GetGraphicsDevice()->mUsedCommandListsSignal[i] < CompletedValue)
-                        {
-                            mGraphicsListsStatus[j] = 1;
-                            IndicesToRemove.push_back(i);
-                        }
-                    }
-                }
-                else if (ListType == CommandListType::Copy)
-                {
-                    auto CompletedValue = GetGraphicsDevice()->mCopyFence->GetCompletedValue();
-                    for (size_t j = 0; j < mCopyListsCount; ++j)
-                    {
-                        if (mCopyLists[j].get() == GetGraphicsDevice()->mUsedCommandLists[i] && GetGraphicsDevice()->mUsedCommandListsSignal[i] < CompletedValue)
-                        {
-                            mCopyListsStatus[j] = 1;
-                            IndicesToRemove.push_back(i);
-                        }
-                    }
-                }
-                else
-                {
-                    auto CompletedValue = GetGraphicsDevice()->mComputeFence->GetCompletedValue();
-                    for (size_t j = 0; j < mComputeListsCount; ++j)
-                    {
-                        if (mComputeLists[j].get() == GetGraphicsDevice()->mUsedCommandLists[i] && GetGraphicsDevice()->mUsedCommandListsSignal[i] < CompletedValue)
-                        {
-                            mComputeListsStatus[j] = 1;
-                            IndicesToRemove.push_back(i);
-                        }
+                        mGraphicsListsAndStatus[j]->mStatus->store(true);
+                        GraphicsRemoveIndices.emplace_back(i);
                     }
                 }
             }
 
-            std::sort(IndicesToRemove.begin(), IndicesToRemove.end(), std::greater<size_t>());
-            for (size_t index : IndicesToRemove)
+            for (size_t i = 0; i < GetGraphicsDevice()->mCopyUsedCommandListsCount; ++i)
             {
-                GetGraphicsDevice()->mUsedCommandLists.erase(GetGraphicsDevice()->mUsedCommandLists.begin() + index);
-                GetGraphicsDevice()->mUsedCommandListsSignal.erase(GetGraphicsDevice()->mUsedCommandListsSignal.begin() + index);
-                --(GetGraphicsDevice()->mUsedCommandListsCount);
+                for (size_t j = 0; j < mCopyListsAndStatus.size(); ++j)
+                {
+                    if(
+                        GetGraphicsDevice()->mCopyUsedCommandLists[i] == mCopyListsAndStatus[j]->mCommandList &&
+                        GetGraphicsDevice()->mCopyUsedCommandListsSignal[i] < GetGraphicsDevice()->mCopyFence->GetCompletedValue()
+                    )
+                    {
+                        mCopyListsAndStatus[j]->mStatus->store(true);
+                        CopyRemoveIndices.emplace_back(i);
+                    }
+                }
             }
+
+            for (size_t i = 0; i < GetGraphicsDevice()->mComputeUsedCommandListsCount; ++i)
+            {
+                for (size_t j = 0; j < mComputeListsAndStatus.size(); ++j)
+                {
+                    if (
+                        GetGraphicsDevice()->mComputeUsedCommandLists[i] == mComputeListsAndStatus[j]->mCommandList &&
+                        GetGraphicsDevice()->mComputeUsedCommandListsSignal[i] < GetGraphicsDevice()->mComputeFence->GetCompletedValue()
+                    )
+                    {
+                        mComputeListsAndStatus[j]->mStatus->store(true);
+                        ComputeRemoveIndices.emplace_back(i);
+                    }
+                }
+            }
+
+            for (auto it = GraphicsRemoveIndices.rbegin(); it != GraphicsRemoveIndices.rend(); ++it)
+            {
+                GetGraphicsDevice()->mGraphicsUsedCommandLists.erase(GetGraphicsDevice()->mGraphicsUsedCommandLists.begin() + *it);
+                GetGraphicsDevice()->mGraphicsUsedCommandListsSignal.erase(GetGraphicsDevice()->mGraphicsUsedCommandListsSignal.begin() + *it);
+            }
+            for (auto it = CopyRemoveIndices.rbegin(); it != CopyRemoveIndices.rend(); ++it)
+            {
+                GetGraphicsDevice()->mCopyUsedCommandLists.erase(GetGraphicsDevice()->mCopyUsedCommandLists.begin() + *it);
+                GetGraphicsDevice()->mCopyUsedCommandListsSignal.erase(GetGraphicsDevice()->mCopyUsedCommandListsSignal.begin() + *it);
+            }
+            for (auto it = ComputeRemoveIndices.rbegin(); it != ComputeRemoveIndices.rend(); ++it)
+            {
+                GetGraphicsDevice()->mComputeUsedCommandLists.erase(GetGraphicsDevice()->mComputeUsedCommandLists.begin() + *it);
+                GetGraphicsDevice()->mComputeUsedCommandListsSignal.erase(GetGraphicsDevice()->mComputeUsedCommandListsSignal.begin() + *it);
+            }
+
+            GetGraphicsDevice()->mGraphicsUsedCommandListsCount -= GraphicsRemoveIndices.size();
+            GetGraphicsDevice()->mCopyUsedCommandListsCount -= CopyRemoveIndices.size();
+            GetGraphicsDevice()->mComputeUsedCommandListsCount -= ComputeRemoveIndices.size();
         }
 
-        std::vector<std::shared_ptr<CommandList>> mGraphicsLists;
-        std::vector<std::shared_ptr<CommandList>> mCopyLists;
-        std::vector<std::shared_ptr<CommandList>> mComputeLists;
+        struct CommandListAndStatus
+        {
+            CommandListAndStatus
+            (
+                CommandListType type, 
+                Microsoft::WRL::ComPtr<ID3D12CommandAllocator> pAllocator, 
+                Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList
+            ) 
+            {
+                mCommandList = new CommandList(type, pAllocator, pList);
+                mStatus = new std::atomic_bool; 
+                mStatus->store(true);
+            }
 
-        std::vector<int32> mGraphicsListsStatus;
-        std::vector<int32> mCopyListsStatus;
-        std::vector<int32> mComputeListsStatus;
+            ~CommandListAndStatus()
+            {
+                delete mCommandList;
+                delete mStatus;
+            }
 
-        uint32 mGraphicsListsCount = 8;
-        uint32 mCopyListsCount = 2;
-        uint32 mComputeListsCount = 2;
+            CommandListAndStatus(const CommandListAndStatus&) = delete;
+            CommandListAndStatus(CommandListAndStatus&&) = delete;
+            CommandListAndStatus& operator=(const CommandListAndStatus&) = delete;
+            CommandListAndStatus& operator=(CommandListAndStatus&&) = delete;
 
-        std::mutex mMutex;
+            CommandList* mCommandList;
+            std::atomic_bool* mStatus;
+        };
+
+        concurrency::concurrent_vector<std::unique_ptr<CommandListAndStatus>> mGraphicsListsAndStatus;
+        concurrency::concurrent_vector<std::unique_ptr<CommandListAndStatus>> mCopyListsAndStatus;
+        concurrency::concurrent_vector<std::unique_ptr<CommandListAndStatus>> mComputeListsAndStatus;
 
         friend CommandListPool* GetCommandListPool();
         friend void CollectCommandList();
@@ -552,7 +573,7 @@ namespace ndq
 
     export CommandListPool* GetCommandListPool()
     {
-        static CommandListPool* Pool = new CommandListPool(GetGraphicsDevice());
+        static CommandListPool* Pool = new CommandListPool;
         return Pool;
     }
 

@@ -1,17 +1,18 @@
 #pragma once
 
 #include <Windows.h>
-#include <winnt.h> // LARGE_INTEGER
+#include <concurrent_vector.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
+#include <winnt.h> // LARGE_INTEGER
 #include <wrl.h>
 
 #include <cstdint>
 #include <cstddef>
 #include <algorithm>
+#include <atomic>
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <vector>
 
 #include "imgui.h"
