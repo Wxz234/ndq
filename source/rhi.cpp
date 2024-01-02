@@ -407,10 +407,10 @@ namespace ndq
                 }
             }
 
-            return _CreateList(type);
+            return CreateList(type);
         }
     private:
-        CommandList* _CreateList(CommandListType type)
+        CommandList* CreateList(CommandListType type)
         {
             concurrency::concurrent_vector<std::unique_ptr<CommandListAndStatus>>* ListAndStatus;
             D3D12_COMMAND_LIST_TYPE RawType;
@@ -590,7 +590,11 @@ namespace ndq
 
     void FinalizeRHI()
     {
-        delete GetGraphicsDevice();
+        GetGraphicsDevice()->Wait(CommandListType::Graphics);
+        GetGraphicsDevice()->Wait(CommandListType::Copy);
+        GetGraphicsDevice()->Wait(CommandListType::Compute);
+
         delete GetCommandListPool();
+        delete GetGraphicsDevice();
     }
 }

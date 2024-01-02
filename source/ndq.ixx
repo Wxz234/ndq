@@ -3,6 +3,7 @@ export module ndq;
 export import :gui;
 export import :platform;
 export import :rhi;
+export import :shader;
 export import :window;
 
 export import <Windows.h>;

@@ -127,10 +127,6 @@ namespace ndq
 
         void PostFinalize()
         {
-            GetGraphicsDevice()->Wait(CommandListType::Graphics);
-            GetGraphicsDevice()->Wait(CommandListType::Copy);
-            GetGraphicsDevice()->Wait(CommandListType::Compute);
-
             FinalizeGui();
             FinalizeRHI();
         }
