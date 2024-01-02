@@ -12,6 +12,7 @@
 
 #include <concurrent_vector.h>
 #include <d3d12.h>
+#include <dxcapi.h>
 #include <dxgi1_6.h>
 #include <wrl.h>
 

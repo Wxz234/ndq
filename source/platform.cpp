@@ -22,6 +22,11 @@ namespace ndq
         return LoadLibraryA(Path.c_str());
     }
 
+    HMODULE GetDllHandleFromPath(const char* name)
+    {
+        return LoadLibraryA(name);
+    }
+
     void* GetDllExport(HMODULE module, const char* name)
     {
         return (void*)GetProcAddress(module, name);

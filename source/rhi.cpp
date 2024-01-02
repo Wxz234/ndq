@@ -9,6 +9,9 @@ import :platform;
 #define SWAP_CHAIN_BUFFER_COUNT 3
 #define SWAP_CHAIN_FORMAT DXGI_FORMAT_R8G8B8A8_UNORM
 #define NODEMASK 1
+
+typedef HRESULT(WINAPI* PfnCreateFactory2)(UINT Flags, REFIID riid, _COM_Outptr_ void** ppFactory);
+
 namespace ndq
 {
     export enum class CommandListType
@@ -265,6 +268,9 @@ namespace ndq
 
         void Initialize(HWND hwnd, UINT width, UINT height)
         {
+            auto D3D12DLL = GetDllHandleFromPath("d3d12.dll");
+            auto DXGIDLL = GetDllHandleFromPath("dxgi.dll");
+
             mHwnd = hwnd;
 
             if (bIsInit)
@@ -277,16 +283,21 @@ namespace ndq
             UINT FactoryFlag = 0;
 #ifdef _DEBUG
             Microsoft::WRL::ComPtr<ID3D12Debug> DebugController;
-            if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&DebugController))))
+
+            auto _D3D12GetDebugInterface = (PFN_D3D12_GET_DEBUG_INTERFACE)GetDllExport(D3D12DLL, "D3D12GetDebugInterface");
+            if (SUCCEEDED(_D3D12GetDebugInterface(IID_PPV_ARGS(&DebugController))))
             {
                 DebugController->EnableDebugLayer();
             }
             FactoryFlag = DXGI_CREATE_FACTORY_DEBUG;
 #endif
-            CreateDXGIFactory2(FactoryFlag, IID_PPV_ARGS(&Factory));
+            auto _CreateDXGIFactory2 = (PfnCreateFactory2)GetDllExport(DXGIDLL, "CreateDXGIFactory2");
+            _CreateDXGIFactory2(FactoryFlag, IID_PPV_ARGS(&Factory));
             Microsoft::WRL::ComPtr<IDXGIAdapter4> Adapter;
             Factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&Adapter));
-            D3D12CreateDevice(Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&mDevice));
+
+            auto _D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)GetDllExport(D3D12DLL, "D3D12CreateDevice");
+            _D3D12CreateDevice(Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&mDevice));
             CreateInternalCMDQueue();
 
             DXGI_SWAP_CHAIN_DESC1 ScDesc{};
@@ -340,6 +351,9 @@ namespace ndq
             }
 
             mStates.resize(SWAP_CHAIN_BUFFER_COUNT, D3D12_RESOURCE_STATE_PRESENT);
+
+            FreeDllHandle(D3D12DLL);
+            FreeDllHandle(DXGIDLL);
         }
 
         std::vector<CommandList*> mGraphicsUsedCommandLists;

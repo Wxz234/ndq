@@ -1,7 +1,6 @@
 module;
 
 #include "predef.h"
-#include <dxcapi.h>
 
 export module ndq:shader;
 
@@ -30,11 +29,20 @@ namespace ndq
 	{
 	public:
 	private:
+		Shader() {}
+
+
 	};
 
-	export Shader* CompileShaderFromPath(const char* path)
+	export Shader* CompileShaderFromPath(const char* path, ShaderType type, ShaderModel model, const char* entry)
 	{
-		GetDllHandleFromWindowsSDK("dxcompiler.dll");
+		auto DxcompilerDll = GetDllHandleFromWindowsSDK("dxcompiler.dll");
+		FreeDllHandle(DxcompilerDll);
 		return nullptr;
+	}
+
+	export void RemoveShader(Shader* pShader)
+	{
+		delete pShader;
 	}
 }

@@ -13,14 +13,14 @@ struct App : public ndq::Application
     {
         ndq::Gui::NewFrame();
         ndq::Gui::SetNextWindowSize(200, 400, ndq::GuiCond::FirstUseEver);
-        ndq::Gui::Begin("Gui");
+        ndq::Gui::Begin("Triangle");
         ndq::Gui::End();
         ndq::Gui::Render();
 
         auto CommandList = ndq::GetCommandListPool()->GetCommandList(ndq::CommandListType::Graphics);
         CommandList->Open();
         ndq::GetGraphicsDevice()->SetCurrentRenderTargetState(CommandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-        const float Colors[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        const float Colors[4] = { 0.2f, 0.8f, 1.0f, 1.0f };
         ndq::GetGraphicsDevice()->ClearCurrentRTV(CommandList, Colors);
         ndq::GetGraphicsDevice()->BindCurrentRTV(CommandList);
         ndq::Gui::Submit(CommandList);
