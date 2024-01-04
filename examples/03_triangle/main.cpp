@@ -30,7 +30,7 @@ struct App : public ndq::Application
         ndq::GetGraphicsDevice()->ExecuteCommandList(CommandList);
         ndq::GetGraphicsDevice()->Present();
 
-        ndq::CompileShaderFromPath("");
+        //ndq::CompileShaderFromPath("");
     }
 };
 

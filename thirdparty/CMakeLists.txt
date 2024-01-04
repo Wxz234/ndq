@@ -18,3 +18,17 @@ set(NDQ_IMGUI_CODE
 add_library(imgui STATIC ${NDQ_IMGUI_CODE})
 target_include_directories(imgui PUBLIC ${PROJECT_SOURCE_DIR}/thirdparty/imgui)
 set_target_properties(imgui PROPERTIES FOLDER "libraries")
+
+include(FetchContent)
+FetchContent_Declare(dxc_bin
+    URL https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.7.2308/dxc_2023_08_14.zip
+    URL_HASH SHA256=01d4c4dfa37dee21afe70cac510d63001b6b611a128e3760f168765eead1e625
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dxc
+)
+FetchContent_MakeAvailable(dxc_bin)
+
+add_library(dxcompiler SHARED IMPORTED)
+set_target_properties(dxcompiler PROPERTIES
+  IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/dxc/bin/x64/dxcompiler.dll"
+  IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/dxc/bin/x64/dxcompiler.dll"
+)
