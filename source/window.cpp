@@ -133,7 +133,7 @@ namespace ndq
 
         void PostUpdate()
         {
-            CollectCommandList();
+            CommandListPool::GetPool()->CollectCommandList();
         }
     };
 }

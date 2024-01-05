@@ -17,20 +17,20 @@ struct App : public ndq::Application
         ndq::Gui::End();
         ndq::Gui::Render();
 
-        auto CommandList = ndq::GetCommandListPool()->GetCommandList(ndq::CommandListType::Graphics);
+        auto CommandList = ndq::CommandListPool::GetPool()->GetCommandList(ndq::CommandListType::Graphics);
         CommandList->Open();
-        ndq::GetGraphicsDevice()->SetCurrentRenderTargetState(CommandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+        ndq::GraphicsDevice::GetDevice()->SetCurrentRenderTargetState(CommandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
         const float Colors[4] = { 0.2f, 0.8f, 1.0f, 1.0f };
-        ndq::GetGraphicsDevice()->ClearCurrentRTV(CommandList, Colors);
-        ndq::GetGraphicsDevice()->BindCurrentRTV(CommandList);
+        ndq::GraphicsDevice::GetDevice()->ClearCurrentRTV(CommandList, Colors);
+        ndq::GraphicsDevice::GetDevice()->BindCurrentRTV(CommandList);
         ndq::Gui::Submit(CommandList);
-        ndq::GetGraphicsDevice()->SetCurrentRenderTargetState(CommandList, D3D12_RESOURCE_STATE_PRESENT);
+        ndq::GraphicsDevice::GetDevice()->SetCurrentRenderTargetState(CommandList, D3D12_RESOURCE_STATE_PRESENT);
         CommandList->Close();
 
-        ndq::GetGraphicsDevice()->ExecuteCommandList(CommandList);
-        ndq::GetGraphicsDevice()->Present();
+        ndq::GraphicsDevice::GetDevice()->ExecuteCommandList(CommandList);
+        ndq::GraphicsDevice::GetDevice()->Present();
 
-        //ndq::CompileShaderFromPath("");
+        ndq::CommandListPool::GetPool()->CollectCommandList();
     }
 };
 

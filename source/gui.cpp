@@ -81,7 +81,7 @@ namespace ndq
 
             auto Context = GetContext();
 
-            GetGraphicsDevice()->GetRawDevice()->CreateDescriptorHeap(&HeapDesc, IID_PPV_ARGS(&Context->ImguiHeap));
+            GraphicsDevice::GetDevice()->GetRawDevice()->CreateDescriptorHeap(&HeapDesc, IID_PPV_ARGS(&Context->ImguiHeap));
 
             IMGUI_CHECKVERSION();
             ImGui::CreateContext();
@@ -94,8 +94,8 @@ namespace ndq
             ImGui::StyleColorsDark();
             ImGui_ImplWin32_Init(hwnd);
 
-            ImGui_ImplDX12_Init(GetGraphicsDevice()->GetRawDevice(), GetGraphicsDevice()->GetSwapChainBufferCount(),
-                GetGraphicsDevice()->GetSwapChainFormat(),
+            ImGui_ImplDX12_Init(GraphicsDevice::GetDevice()->GetRawDevice(), GraphicsDevice::GetDevice()->GetSwapChainBufferCount(),
+                GraphicsDevice::GetDevice()->GetSwapChainFormat(),
                 Context->ImguiHeap,
                 Context->ImguiHeap->GetCPUDescriptorHandleForHeapStart(),
                 Context->ImguiHeap->GetGPUDescriptorHandleForHeapStart());

@@ -16,6 +16,7 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>

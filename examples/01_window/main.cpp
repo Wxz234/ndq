@@ -11,7 +11,7 @@ struct App : public ndq::Application
 
     void Update(float t)
     {
-        ndq::GetGraphicsDevice()->Present();
+        ndq::GraphicsDevice::GetDevice()->Present();
     }
 };
 
