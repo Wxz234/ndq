@@ -25,10 +25,10 @@ FetchContent_Declare(dxc_bin
     URL_HASH SHA256=01d4c4dfa37dee21afe70cac510d63001b6b611a128e3760f168765eead1e625
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dxc
 )
-FetchContent_MakeAvailable(dxc_bin)
+FetchContent_GetProperties(dxc_bin)
+if(NOT dxc_bin_POPULATED)
+    FetchContent_Populate(dxc_bin)
+endif()
 
-add_library(dxcompiler SHARED IMPORTED)
-set_target_properties(dxcompiler PROPERTIES
-  IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/dxc/bin/x64/dxcompiler.dll"
-  IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/dxc/bin/x64/dxcompiler.dll"
-)
+set(NDQ_DXCOMPILER_DLL "${CMAKE_CURRENT_SOURCE_DIR}/dxc/bin/x64/dxcompiler.dll" CACHE STRING "dxcompiler dll")
+set(NDQ_DXCOMPILER_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dxc/inc" CACHE STRING "dxcompiler header")

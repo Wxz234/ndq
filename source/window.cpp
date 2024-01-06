@@ -7,6 +7,7 @@ export module ndq:window;
 import :platform;
 import :gui;
 import :rhi;
+import :shader;
 
 namespace ndq
 {

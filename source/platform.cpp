@@ -15,13 +15,6 @@ namespace ndq
     export using uint32 = uint32_t;
     export using uint64 = uint64_t;
 
-    HMODULE GetDllHandleFromWindowsSDK(const char* name)
-    {
-        std::string DllPath(NDQ_WINDOWS_SDK_DLL_PATH);
-        std::string Path = DllPath + name;
-        return LoadLibraryA(Path.c_str());
-    }
-
     HMODULE GetDllHandleFromPath(const char* name)
     {
         return LoadLibraryA(name);

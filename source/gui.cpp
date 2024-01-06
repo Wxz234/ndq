@@ -55,8 +55,8 @@ namespace ndq
 
         static void Submit(CommandList* pList)
         {
-            ID3D12DescriptorHeap* Lists[1] = { GetContext()->ImguiHeap };
-            pList->GetRawList()->SetDescriptorHeaps(1, Lists);
+            ID3D12DescriptorHeap* Heap[1] = { GetContext()->ImguiHeap };
+            pList->GetRawList()->SetDescriptorHeaps(1, Heap);
             ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pList->GetRawList());
         }
     private:

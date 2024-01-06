@@ -34,10 +34,16 @@ namespace ndq
 
 	};
 
+	HMODULE GetCompilerDll()
+	{
+		static auto Dll = GetDllHandleFromPath(NDQ_DXCOMPILER_DLL);
+		return Dll;
+	}
+
 	export Shader* CompileShaderFromPath(const char* path, ShaderType type, ShaderModel model, const char* entry)
 	{
-		auto DxcompilerDll = GetDllHandleFromWindowsSDK("dxcompiler.dll");
-		FreeDllHandle(DxcompilerDll);
+		//auto DxcompilerDll = GetDllHandleFromWindowsSDK("dxcompiler.dll");
+		//FreeDllHandle(DxcompilerDll);
 		return nullptr;
 	}
 

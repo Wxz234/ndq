@@ -11,8 +11,12 @@ target_sources(ndq PUBLIC FILE_SET CXX_MODULES FILES
     "shader.cpp"
 )
 
-target_compile_definitions(ndq PRIVATE "NDQ_WINDOWS_SDK_DLL_PATH=R\"($(WindowsSdkDir)bin\\$(TargetPlatformVersion)\\x64\\)\"")
-target_compile_options(ndq PUBLIC /wd4005 /wd5105)
+# dxcompiler
+target_compile_definitions(ndq PRIVATE NDQ_DXCOMPILER_DLL="${NDQ_DXCOMPILER_DLL}")
+target_include_directories(ndq PRIVATE NDQ_DXCOMPILER_INCLUDE_DIR)
+# imgui
 target_link_libraries(ndq PRIVATE imgui)
-#target_link_libraries(ndq PUBLIC dxcompiler)
+
+target_compile_options(ndq PUBLIC /wd4005 /wd5105)
+
 set_target_properties(ndq PROPERTIES FOLDER "libraries")
