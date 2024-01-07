@@ -29,4 +29,43 @@ namespace ndq
     {
         FreeLibrary(module);
     }
+
+    enum class DllType
+    {
+        DXCOMPILER,
+        D3D12,
+        DXGI,
+    };
+
+    HMODULE GetDll(DllType type)
+    {
+        static auto Dxcompiler = GetDllHandleFromPath(NDQ_DXCOMPILER_DLL);
+        static auto D3d12 = GetDllHandleFromPath("d3d12.dll");
+        static auto Dxgi = GetDllHandleFromPath("dxgi.dll");
+
+        HMODULE Module{};
+        switch (type)
+        {
+        case DllType::DXCOMPILER:
+            Module = Dxcompiler;
+            break;
+        case DllType::D3D12:
+            Module = D3d12;
+            break;
+        case DllType::DXGI:
+            Module = Dxgi;
+            break;
+        default:
+            break;
+        }
+
+        return Module;
+    }
+
+    void RemoveAllDll()
+    {
+        FreeDllHandle(GetDll(DllType::DXCOMPILER));
+        FreeDllHandle(GetDll(DllType::D3D12));
+        FreeDllHandle(GetDll(DllType::DXGI));
+    }
 }

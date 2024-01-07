@@ -7,7 +7,6 @@ export module ndq:window;
 import :platform;
 import :gui;
 import :rhi;
-import :shader;
 
 namespace ndq
 {
@@ -130,6 +129,8 @@ namespace ndq
         {
             FinalizeGui();
             FinalizeRHI();
+
+            RemoveAllDll();
         }
 
         void PostUpdate()

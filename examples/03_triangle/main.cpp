@@ -6,7 +6,16 @@ struct App : public ndq::Application
 {
     App(ndq::ApplicationDesc* pDesc) : ndq::Application(pDesc) {}
 
-    void Initialize() {}
+    void Initialize()
+    {
+        const wchar_t* path = L"C:\\Users\\42937\\source\\repos\\ConsoleApplication2\\ConsoleApplication2\\VertexShader.hlsl";
+        const wchar_t* _1 = L"-E";
+        const wchar_t* _2 = L"main";
+        const wchar_t* _3 = L"-T";
+        const wchar_t* _4 = L"vs_6_6";
+        const wchar_t* Args[] = { path, _1, _2, _3, _4 };
+        ndq::CompileShader(Args, 5);
+    }
     void Finalize() {}
 
     void Update(float t)

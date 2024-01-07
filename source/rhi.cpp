@@ -70,7 +70,22 @@ namespace ndq
 
         ~GraphicsDevice()
         {
-            Release();
+            mDevice.Reset();
+            mSwapChain.Reset();
+            mGraphicsQueue.Reset();
+            mCopyQueue.Reset();
+            mComputeQueue.Reset();
+            mRtvDescriptorHeap.Reset();
+            std::for_each_n(mRT, SWAP_CHAIN_BUFFER_COUNT, [](auto& comPtr) { comPtr.Reset(); });
+
+            mFence.Reset();
+            mEvent.Close();
+            mGraphicsFence.Reset();
+            mGraphicsEvent.Close();
+            mCopyFence.Reset();
+            mCopyEvent.Close();
+            mComputeFence.Reset();
+            mComputeEvent.Close();
         }
 
         void Present()
@@ -257,19 +272,19 @@ namespace ndq
 #ifdef _DEBUG
             Microsoft::WRL::ComPtr<ID3D12Debug> DebugController;
 
-            auto _D3D12GetDebugInterface = (PFN_D3D12_GET_DEBUG_INTERFACE)GetDllExport(mD3D12DLL, "D3D12GetDebugInterface");
+            auto _D3D12GetDebugInterface = (PFN_D3D12_GET_DEBUG_INTERFACE)GetDllExport(GetDll(DllType::D3D12), "D3D12GetDebugInterface");
             if (SUCCEEDED(_D3D12GetDebugInterface(IID_PPV_ARGS(&DebugController))))
             {
                 DebugController->EnableDebugLayer();
             }
             FactoryFlag = DXGI_CREATE_FACTORY_DEBUG;
 #endif
-            auto _CreateDXGIFactory2 = (PfnCreateFactory2)GetDllExport(mDXGIDLL, "CreateDXGIFactory2");
+            auto _CreateDXGIFactory2 = (PfnCreateFactory2)GetDllExport(GetDll(DllType::DXGI), "CreateDXGIFactory2");
             _CreateDXGIFactory2(FactoryFlag, IID_PPV_ARGS(&Factory));
             Microsoft::WRL::ComPtr<IDXGIAdapter4> Adapter;
             Factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&Adapter));
 
-            auto _D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)GetDllExport(mD3D12DLL, "D3D12CreateDevice");
+            auto _D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)GetDllExport(GetDll(DllType::D3D12), "D3D12CreateDevice");
             _D3D12CreateDevice(Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&mDevice));
             CreateInternalCMDQueue();
 
@@ -326,34 +341,7 @@ namespace ndq
             mStates.resize(SWAP_CHAIN_BUFFER_COUNT, D3D12_RESOURCE_STATE_PRESENT);
         }
 
-        GraphicsDevice()
-        {
-            mD3D12DLL = GetDllHandleFromPath("d3d12.dll");
-            mDXGIDLL = GetDllHandleFromPath("dxgi.dll");
-        }
-
-        void Release()
-        {
-            mDevice.Reset();
-            mSwapChain.Reset();
-            mGraphicsQueue.Reset();
-            mCopyQueue.Reset();
-            mComputeQueue.Reset();
-            mRtvDescriptorHeap.Reset();
-            std::for_each_n(mRT, SWAP_CHAIN_BUFFER_COUNT, [](auto& comPtr) { comPtr.Reset(); });
-
-            mFence.Reset();
-            mEvent.Close();
-            mGraphicsFence.Reset();
-            mGraphicsEvent.Close();
-            mCopyFence.Reset();
-            mCopyEvent.Close();
-            mComputeFence.Reset();
-            mComputeEvent.Close();
-
-            FreeDllHandle(mD3D12DLL);
-            FreeDllHandle(mDXGIDLL);
-        }
+        GraphicsDevice() {}
 
         HWND mHwnd = NULL;
 
@@ -382,9 +370,6 @@ namespace ndq
         uint64 mComputeFenceValue = 0;
         Microsoft::WRL::ComPtr<ID3D12Fence1> mComputeFence;
         Microsoft::WRL::Wrappers::Event mComputeEvent;
-
-        HMODULE mD3D12DLL;
-        HMODULE mDXGIDLL;
 
         std::vector<CommandList*> mGraphicsUsedCommandLists;
         std::vector<uint64> mGraphicsUsedCommandListsSignal;
