@@ -27,6 +27,8 @@ namespace ndq
 
 	struct ShaderDesc
 	{
+
+	private:
 		ShaderType Type = ShaderType::Vertex;
 		ShaderModel Model = ShaderModel::SM_6_6;
 		const wchar_t* EntryPoint = nullptr;
@@ -42,7 +44,11 @@ namespace ndq
 		friend Shader* CompileShader(const wchar_t** pArguments, uint32 argCount);
 	};
 
-	//std::vector<>
+	std::vector<const wchar_t*> GetArguments(const ShaderDesc* pDesc)
+	{
+
+		return std::vector<const wchar_t*>();
+	}
 
 	export Shader* CompileShader(const wchar_t* path, const wchar_t** pArguments, uint32 argCount)
 	{
@@ -97,7 +103,7 @@ namespace ndq
 			int z = 1;
 		}
 
-		return new Shader;
+		return nullptr;
 	}
 
 	export void RemoveShader(Shader* pShader)
