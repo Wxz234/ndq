@@ -48,7 +48,6 @@ struct App : public ndq::Application
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
 {
     ndq::ApplicationDesc AppDesc;
-    AppDesc.Instance = hInstance;
     AppDesc.Title = L"Triangle";
     AppDesc.Width = 800;
     AppDesc.Height = 600;

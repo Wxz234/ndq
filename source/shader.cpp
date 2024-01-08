@@ -52,6 +52,14 @@ namespace ndq
 			Definitions.emplace_back(definition);
 			return *this;
 		}
+
+		void Clear()
+		{
+			Type = ShaderType::Vertex;
+			Model = ShaderModel::SM_6_6;
+			Definitions.clear();
+			EntryPointName.clear();
+		}
 	private:
 		ShaderType Type = ShaderType::Vertex;
 		ShaderModel Model = ShaderModel::SM_6_6;

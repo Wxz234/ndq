@@ -44,7 +44,6 @@ namespace ndq
 
     export struct ApplicationDesc
     {
-        HINSTANCE Instance;
         const wchar_t* Title;
         uint32 Width;
         uint32 Height;
@@ -61,7 +60,7 @@ namespace ndq
             Wcex.cbSize = sizeof(WNDCLASSEXW);
             Wcex.style = CS_HREDRAW | CS_VREDRAW;
             Wcex.lpfnWndProc = WndProc;
-            Wcex.hInstance = pDesc->Instance;
+            Wcex.hInstance = GetModuleHandleW(nullptr);
             Wcex.hIcon = LoadIconW(Wcex.hInstance, L"IDI_ICON");
             Wcex.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
             Wcex.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
