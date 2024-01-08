@@ -14,7 +14,9 @@ struct App : public ndq::Application
         const wchar_t* _3 = L"-T";
         const wchar_t* _4 = L"vs_6_6";
         const wchar_t* Args[] = { path, _1, _2, _3, _4 };
-        ndq::CompileShader(Args, 5);
+        //ndq::CompileShader(Args, 5);
+
+        ndq::ShaderType::Vertex;
     }
     void Finalize() {}
 

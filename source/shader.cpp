@@ -8,13 +8,13 @@ import :platform;
 
 namespace ndq
 {
-	enum class ShaderType
+	export enum class ShaderType
 	{
 		Vertex,
 		Pixel,
 	};
 
-	enum class ShaderModel
+	export enum class ShaderModel
 	{
 		SM_6_0,
 		SM_6_1,
@@ -25,29 +25,77 @@ namespace ndq
 		SM_6_6,
 	};
 
-	struct ShaderDesc
+	class ShaderDesc
 	{
+	public:
 
+		ShaderDesc& SetShaderType(ShaderType type)
+		{
+			Type = type;
+			return *this;
+		}
+
+		ShaderDesc& SetShaderModel(ShaderModel model)
+		{
+			Model = model;
+			return *this;
+		}
+
+		ShaderDesc& SetEntryPoint(const wchar_t* entryPoint)
+		{
+			EntryPointName = entryPoint;
+			return *this;
+		}
+
+		ShaderDesc& AddDefinition(const wchar_t* definition)
+		{
+			Definitions.emplace_back(definition);
+			return *this;
+		}
 	private:
 		ShaderType Type = ShaderType::Vertex;
 		ShaderModel Model = ShaderModel::SM_6_6;
-		const wchar_t* EntryPoint = nullptr;
+		std::vector<std::wstring> Definitions;
+		std::wstring EntryPointName;
 
+		friend class InternalArguments;
 	};
 
 	class Shader
 	{
 	public:
-	private:
-		Shader() {}
 
+	private:
+		
+		Shader() {}
 		friend Shader* CompileShader(const wchar_t** pArguments, uint32 argCount);
 	};
-
-	std::vector<const wchar_t*> GetArguments(const ShaderDesc* pDesc)
+	namespace Internal
 	{
+		class InternalArguments
+		{
+		public:
+			InternalArguments(const wchar_t* path, const ShaderDesc* pDesc)
+			{
 
-		return std::vector<const wchar_t*>();
+			}
+			~InternalArguments()
+			{
+
+			}
+
+			const wchar_t** GetArgs()
+			{
+				return nullptr;
+			}
+		private:
+
+		};
+
+		std::unique_ptr<InternalArguments> CreateInternalArguments(const wchar_t* path, const ShaderDesc* pDesc)
+		{
+			return std::unique_ptr<InternalArguments>(new InternalArguments(path, pDesc));
+		}
 	}
 
 	export Shader* CompileShader(const wchar_t* path, const wchar_t** pArguments, uint32 argCount)
@@ -95,13 +143,13 @@ namespace ndq
 
 		Microsoft::WRL::ComPtr<IDxcBlob> oo;
 		Result->GetResult(&oo);
-		if (oo.Get())
-		{
-			char* ppp = (char*)oo->GetBufferPointer();
-			ppp += 2000;
-			auto ddd = oo->GetBufferSize();
-			int z = 1;
-		}
+		//if (oo.Get())
+		//{
+		//	char* ppp = (char*)oo->GetBufferPointer();
+		//	ppp += 2000;
+		//	auto ddd = oo->GetBufferSize();
+		//	int z = 1;
+		//}
 
 		return nullptr;
 	}
