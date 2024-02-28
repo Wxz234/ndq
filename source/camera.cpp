@@ -10,29 +10,29 @@ namespace ndq
     {
     public:
         Camera() {}
-        Camera
-        (
-            const DirectX::XMFLOAT3& position,
-            const DirectX::XMFLOAT3& eye,
-            const DirectX::XMFLOAT3& up,
-            float viewWidth,
-            float viewHeight,
-            float nearZ,
-            float farZ
-        )
-            : Position(position),
-            Eye(eye),
-            Up(up),
-            ViewWidth(viewWidth),
-            ViewHeight(viewHeight),
-            NearZ(nearZ),
-            FarZ(farZ) {}
+        Camera(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& eye, const DirectX::XMFLOAT3& up, float viewWidth, float viewHeight, float nearZ, float farZ)
+            : Position(position), Eye(eye), Up(up), ViewWidth(viewWidth), ViewHeight(viewHeight), NearZ(nearZ), FarZ(farZ) {}
 
         Camera(const Camera&) = default;
         Camera& operator=(const Camera&) = default;
 
         Camera(Camera&&) noexcept = default;
         Camera& operator=(Camera&&) noexcept = default;
+
+        void SetView(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& eye, const DirectX::XMFLOAT3& up)
+        {
+            Position = position;
+            Eye = eye;
+            Up = up;
+        }
+
+        void SetProjection(float viewWidth, float viewHeight, float nearZ, float farZ)
+        {
+            ViewWidth = viewWidth;
+            ViewHeight = viewHeight;
+            NearZ = nearZ;
+            FarZ = farZ;
+        }
     private:
         DirectX::XMFLOAT3 Position = DirectX::XMFLOAT3(0.f, 0.f, 0.f);
         DirectX::XMFLOAT3 Eye = DirectX::XMFLOAT3(0.f, 0.f, 1.f);
