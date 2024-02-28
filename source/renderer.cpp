@@ -97,6 +97,11 @@ namespace ndq
 {
     shared_ptr<IRenderer> CreateRenderer(RENDERER_TYPE type)
     {
-        return shared_ptr<IRenderer>(new Internal::Renderer);
+        shared_ptr<IRenderer> temp;
+        if (type == RENDERER_TYPE::DEFAULT)
+        {
+            temp = shared_ptr<IRenderer>(new Internal::Renderer);
+        }
+        return temp;
     }
 }

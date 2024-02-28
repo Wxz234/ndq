@@ -41,6 +41,7 @@ namespace ndq
                 StaticModel.push_back(gltf);
             }
         }
+        DirectX::XMFLOAT4 DefaultSkyLight;
 
         std::vector<GLTF> StaticModel;
     };
@@ -51,12 +52,13 @@ export namespace ndq
 
     shared_ptr<IScene> CreateScene(SCENE_TYPE type)
     {
+        shared_ptr<IScene> temp;
         if (type == SCENE_TYPE::DEFAULT)
         {
-            return shared_ptr<IScene>(new Scene);
+            temp = shared_ptr<IScene>(new Scene);
         }
 
-        return nullptr;
+        return temp;
     }
 }
 

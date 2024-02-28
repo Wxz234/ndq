@@ -8,6 +8,6 @@ export namespace ndq
 {
     struct RenderData
     {
-
+        void* StaticModel;
     };
 }
