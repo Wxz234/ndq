@@ -158,7 +158,7 @@ namespace ndq
         }
 
         // FilpY
-        FlipY(gltf.Material[1]);
+        FlipY(gltf.Material[2]);
     }
 
     export bool LoadGLTF(const char* path, GLTF& gltf)
