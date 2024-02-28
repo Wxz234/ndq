@@ -71,7 +71,11 @@ namespace ndq
     {
         if (!gltf.MainMesh.Positions.empty() && !gltf.MainMesh.Normals.empty() && !gltf.MainMesh.UV0.empty())
         {
-            if (gltf.MainMesh.Positions.size() == gltf.MainMesh.Normals.size() && gltf.MainMesh.Positions.size() == gltf.MainMesh.UV0.size())
+            if(
+                gltf.MainMesh.Positions.size() == gltf.MainMesh.Normals.size() && 
+                gltf.MainMesh.Positions.size() == gltf.MainMesh.UV0.size() &&
+                gltf.Material[0].Format == IMAGE_FORMAT::RGBA_U8 && gltf.Material[1].Format == IMAGE_FORMAT::RGBA_U8 && gltf.Material[2].Format == IMAGE_FORMAT::RGBA_U8
+            )
             {
                 return true;
             }
