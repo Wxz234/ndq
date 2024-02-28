@@ -10,6 +10,7 @@ export module ndq:renderer;
 import :gui;
 import :rhi;
 import :smart_ptr;
+import :render_data;
 
 export namespace ndq
 {
@@ -28,7 +29,7 @@ export namespace ndq
         virtual void BeginGuiWindow(const char* name) = 0;
         virtual void EndGuiWindow() = 0;
         virtual void EndGuiFrame() = 0;
-        virtual void Draw() = 0;
+        virtual void Draw(RenderData* data = nullptr) = 0;
     };
 
     shared_ptr<IRenderer> CreateRenderer(RENDERER_TYPE type);
@@ -76,8 +77,13 @@ namespace Internal
             ImGui::Render();
         }
 
-        void Draw()
+        void Draw(ndq::RenderData* data)
         {
+            if (data)
+            {
+
+            }
+
             auto GraphicsDevice = ndq::GetGraphicsDevice();
             auto CommandList = GraphicsDevice->GetCommandList(ndq::COMMAND_LIST_TYPE::GRAPHICS);
             CommandList->Open();

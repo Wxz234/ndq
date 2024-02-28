@@ -8,6 +8,7 @@ export namespace ndq
 {
     struct RenderData
     {
+        void* MainCamera;
         void* StaticModel;
     };
 }
