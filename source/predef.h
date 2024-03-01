@@ -20,6 +20,7 @@
 
 #include <winrt/base.h>
 #include <winrt/windows.foundation.h>
+#include <winrt/windows.foundation.collections.h>
 
 #include <algorithm>
 #include <atomic>
