@@ -20,13 +20,13 @@
 
 #include <winrt/base.h>
 #include <winrt/windows.foundation.h>
-#include <winrt/windows.foundation.collections.h>
 
 #include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <memory>
 #include <numeric>
 #include <string>

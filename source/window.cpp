@@ -96,7 +96,12 @@ export namespace ndq
     public:
         IApplication(ApplicationDesc* pDesc)
         {
-            winrt::init_apartment();
+            winrt::hresult const result = WINRT_IMPL_CoInitializeEx(nullptr, static_cast<uint32_t>(winrt::apartment_type::multi_threaded));
+
+            if (result < 0)
+            {
+                throw std::exception("Fail to initialize COM");
+            }
 
             mWidth = pDesc->GetWidth();
             mHeight = pDesc->GetHeight();
