@@ -18,6 +18,9 @@
 #include <wrl/client.h>
 #include <wrl/wrappers/corewrappers.h>
 
+#include <winrt/base.h>
+#include <winrt/windows.foundation.h>
+
 #include <algorithm>
 #include <atomic>
 #include <cmath>

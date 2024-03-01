@@ -96,6 +96,8 @@ export namespace ndq
     public:
         IApplication(ApplicationDesc* pDesc)
         {
+            winrt::init_apartment();
+
             mWidth = pDesc->GetWidth();
             mHeight = pDesc->GetHeight();
             WNDCLASSEXW Wcex{};
