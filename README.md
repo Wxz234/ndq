@@ -10,7 +10,7 @@ To successfully build and run this project, your development environment should 
 
 - Compiler : Visual Studio 2022 (17.4 or newer)
 - Build System : CMake (3.28 RC2 or newer)
-- Windows SDK : 10.0.17763.0 or newer
+- Windows SDK : 10.0.22000.0 or newer
 
 ## Notice
 
