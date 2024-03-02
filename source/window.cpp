@@ -100,7 +100,7 @@ export namespace ndq
 
             if (result < 0)
             {
-                throw std::exception("Fail to initialize COM");
+                std::terminate();
             }
 
             mWidth = pDesc->GetWidth();

@@ -30,6 +30,13 @@ namespace ndq
     class Scene : public IScene
     {
     public:
+        Scene()
+        {
+            Data.MainCamera = &MainCamera;
+            Data.StaticModel = &StaticModel;
+            Data.DefaultSkyLight = &DefaultSkyLight;
+        }
+
         void Update(float t)
         {
 
@@ -37,9 +44,7 @@ namespace ndq
 
         void LoadStaticModel(const char* path)
         {
-            GLTF gltf{};
-            bool success = LoadGLTF(path, gltf);
-            if (success)
+            if (GLTF gltf{}; LoadGLTFStaticModel(path, gltf))
             {
                 StaticModel.push_back(gltf);
             }

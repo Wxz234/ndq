@@ -66,7 +66,6 @@ namespace ndq
         mesh->Tangents[index] = tangent;
     }
 
-
     bool CheckGLTF(const GLTF& gltf)
     {
         if (!gltf.MainMesh.Positions.empty() && !gltf.MainMesh.Normals.empty() && !gltf.MainMesh.UV0.empty())
@@ -74,7 +73,9 @@ namespace ndq
             if(
                 gltf.MainMesh.Positions.size() == gltf.MainMesh.Normals.size() && 
                 gltf.MainMesh.Positions.size() == gltf.MainMesh.UV0.size() &&
-                gltf.Material[0].Format == IMAGE_FORMAT::RGBA_U8 && gltf.Material[1].Format == IMAGE_FORMAT::RGBA_U8 && gltf.Material[2].Format == IMAGE_FORMAT::RGBA_U8
+                gltf.Material[0].Format == IMAGE_FORMAT::RGBA_U8 && 
+                gltf.Material[1].Format == IMAGE_FORMAT::RGBA_U8 && 
+                gltf.Material[2].Format == IMAGE_FORMAT::RGBA_U8
             )
             {
                 return true;
@@ -104,22 +105,9 @@ namespace ndq
 
     void FlipY(Image& image)
     {
-        size_type bytesPerPixel = 0;
-        switch (image.Format)
+        if (image.Format == IMAGE_FORMAT::RGBA_U8)
         {
-        case IMAGE_FORMAT::RGBA_U8:
-            bytesPerPixel = 4;
-            break;
-        }
-
-        if (bytesPerPixel == 0)
-        {
-            return;
-        }
-
-        if (bytesPerPixel <= 4)
-        {
-            for (size_type i = 0; i < image.RawData.size(); i += bytesPerPixel)
+            for (size_type i = 0; i < image.RawData.size(); i += 4)
             {
                 image.RawData[i + 1] = 255 - image.RawData[i + 1];
             }
@@ -161,7 +149,7 @@ namespace ndq
         FlipY(gltf.Material[2]);
     }
 
-    export bool LoadGLTF(const char* path, GLTF& gltf)
+    bool LoadGLTFStaticModel(const char* path, GLTF& gltf)
     {
         tinygltf::Model model;
         tinygltf::TinyGLTF loader;
