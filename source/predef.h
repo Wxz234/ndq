@@ -33,3 +33,6 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#define NDQ_DEFAULT_WIDTH 800
+#define NDQ_DEFAULT_HEIGHT 600

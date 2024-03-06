@@ -87,8 +87,8 @@ export namespace ndq
 
     private:
         std::wstring mTitle = L"ndq";
-        uint32 mWidth = 800;
-        uint32 mHeight = 600;
+        uint32 mWidth = NDQ_DEFAULT_WIDTH;
+        uint32 mHeight = NDQ_DEFAULT_HEIGHT;
     };
 
     class IApplication

@@ -4,6 +4,7 @@ module;
 
 export module ndq:scene;
 
+import :platform;
 import :gltf;
 import :smart_ptr;
 import :camera;
@@ -19,6 +20,8 @@ export namespace ndq
     class IScene
     {
     public:
+        virtual void SetWidth(uint32 w) = 0;
+        virtual void SetHeight(uint32 h) = 0;
         virtual void Update(float t) = 0;
         virtual void LoadStaticModel(const char* path) = 0;
         virtual const RenderData* GetRenderData() const = 0;
@@ -35,6 +38,16 @@ namespace ndq
             Data.MainCamera = &MainCamera;
             Data.StaticModel = &StaticModel;
             Data.DefaultSkyLight = &DefaultSkyLight;
+        }
+
+        void SetWidth(uint32 w)
+        {
+            Width = w;
+        }
+
+        void SetHeight(uint32 h)
+        {
+            Height = h;
         }
 
         void Update(float t)
@@ -61,6 +74,9 @@ namespace ndq
         Camera MainCamera;
 
         std::vector<GLTF> StaticModel;
+
+        uint32 Width = NDQ_DEFAULT_WIDTH;
+        uint32 Height = NDQ_DEFAULT_HEIGHT;
     };
 }
 
