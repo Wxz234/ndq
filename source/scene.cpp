@@ -35,6 +35,8 @@ namespace ndq
     public:
         Scene()
         {
+            Data.Width = &Width;
+            Data.Height = &Height;
             Data.MainCamera = &MainCamera;
             Data.StaticModel = &StaticModel;
             Data.DefaultSkyLight = &DefaultSkyLight;
