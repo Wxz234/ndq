@@ -10,6 +10,7 @@ struct App : public IApplication
 
     void Initialize()
     {
+        pScene = CreateScene(SCENE_TYPE::DEFAULT);
         pRenderer = CreateRenderer(RENDERER_TYPE::DEFAULT);
     }
 
@@ -23,9 +24,10 @@ struct App : public IApplication
         pRenderer->BeginGuiWindow("Triangle");
         pRenderer->EndGuiWindow();
         pRenderer->EndGuiFrame();
-        pRenderer->Draw();
+        pRenderer->Draw(pScene->GetRenderData());
     }
 
+    shared_ptr<IScene> pScene;
     shared_ptr<IRenderer> pRenderer;
 };
 

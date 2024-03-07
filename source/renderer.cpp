@@ -29,7 +29,7 @@ export namespace ndq
         virtual void BeginGuiWindow(const char* name) = 0;
         virtual void EndGuiWindow() = 0;
         virtual void EndGuiFrame() = 0;
-        virtual void Draw(RenderData* data = nullptr) = 0;
+        virtual void Draw(const RenderData* data = nullptr) = 0;
     };
 
     shared_ptr<IRenderer> CreateRenderer(RENDERER_TYPE type);
@@ -77,7 +77,7 @@ namespace Internal
             ImGui::Render();
         }
 
-        void Draw(ndq::RenderData* data)
+        void Draw(const ndq::RenderData* data)
         {
             if (data)
             {
