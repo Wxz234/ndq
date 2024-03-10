@@ -11,6 +11,7 @@ import :gui;
 import :rhi;
 import :smart_ptr;
 import :render_data;
+import :gltf;
 
 export namespace ndq
 {
@@ -40,6 +41,11 @@ namespace Internal
     class Renderer : public ndq::IRenderer
     {
     public:
+        Renderer()
+        {
+            auto pDevice = (ID3D12Device4*)ndq::GetGraphicsDevice()->GetRawDevice();
+        }
+
         void BeginGuiFrame()
         {
             ImGui_ImplDX12_NewFrame();
@@ -96,6 +102,8 @@ namespace Internal
             GraphicsDevice->ExecuteCommandList(CommandList.get());
             GraphicsDevice->Present();
         }
+
+        Microsoft::WRL::ComPtr<ID3D12PipelineState> mDefaultPipeline;
     };
 }
 

@@ -40,16 +40,21 @@ namespace ndq
             Data.MainCamera = &MainCamera;
             Data.StaticModel = &StaticModel;
             Data.DefaultSkyLight = &DefaultSkyLight;
+
+            MainCamera.SetView(DirectX::XMFLOAT3(.0f, .0f, .0f), DirectX::XMFLOAT3(.0f, .0f, 1.f), DirectX::XMFLOAT3(.0f, 1.f, .0f));
+            MainCamera.SetProjection(Width, Height, .1f, 100.f);
         }
 
         void SetWidth(uint32 w)
         {
             Width = w;
+            MainCamera.SetProjection(Width, Height, .1f, 100.f);
         }
 
         void SetHeight(uint32 h)
         {
             Height = h;
+            MainCamera.SetProjection(Width, Height, .1f, 100.f);
         }
 
         void Update(float t)
