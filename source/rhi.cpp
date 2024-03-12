@@ -197,7 +197,7 @@ namespace Internal
             Factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&Adapter));
 
             auto _D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)GetDllExport(GetDll(DllType::D3D12), "D3D12CreateDevice");
-            _D3D12CreateDevice(Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&mDevice));
+            _D3D12CreateDevice(Adapter.Get(), D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&mDevice));
             CreateInternalCMDQueue();
 
             DXGI_SWAP_CHAIN_DESC1 ScDesc{};

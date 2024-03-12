@@ -55,12 +55,12 @@ namespace Internal
                 D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
 
             // TODO
-            ID3DBlob* serializedRootSig = nullptr;
-            ID3DBlob* errorBlob = nullptr;
-            if (FAILED(D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &serializedRootSig, &errorBlob)))
-            {
-                throw;
-            }
+            //ID3DBlob* serializedRootSig = nullptr;
+            //ID3DBlob* errorBlob = nullptr;
+            //if (FAILED(D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &serializedRootSig, &errorBlob)))
+            //{
+            //    throw;
+            //}
         }
         void BeginGuiFrame()
         {
@@ -111,6 +111,10 @@ namespace Internal
             CommandList->Open();
             GraphicsDevice->SetCurrentRenderTargetState(CommandList.get(), ndq::RESOURCE_STATE::RENDER_TARGET);
             GraphicsDevice->BindCurrentRTV(CommandList.get());
+
+            float black[4] = { 0.f,0.f,0.f,1.f };
+            GraphicsDevice->ClearCurrentRTV(CommandList.get(), black);
+
             ndq::GetGui()->Submit(CommandList.get());
             GraphicsDevice->SetCurrentRenderTargetState(CommandList.get(), ndq::RESOURCE_STATE::COMMON);
             CommandList->Close();
