@@ -9,7 +9,6 @@ import :smart_ptr;
 
 #define SWAP_CHAIN_BUFFER_COUNT 3
 #define SWAP_CHAIN_FORMAT DXGI_FORMAT_R8G8B8A8_UNORM
-#define NODEMASK 1
 
 typedef HRESULT(WINAPI* PfnCreateFactory2)(UINT Flags, REFIID riid, _COM_Outptr_ void** ppFactory);
 
@@ -260,15 +259,15 @@ namespace Internal
                 {
                     ID3D12Device4* TempDevice = reinterpret_cast<ID3D12Device4*>(GetRawDevice());
                     TempDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(Allocator.ReleaseAndGetAddressOf()));
-                    TempDevice->CreateCommandList1(NODEMASK, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
+                    TempDevice->CreateCommandList1(NDQ_NODEMASK, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
                     mGraphicsListsAndStatus.push_back(ndq::unique_ptr<CommandListAndStatus>(new CommandListAndStatus(ndq::COMMAND_LIST_TYPE::GRAPHICS, Allocator, List)));
 
                     TempDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(Allocator.ReleaseAndGetAddressOf()));
-                    TempDevice->CreateCommandList1(NODEMASK, D3D12_COMMAND_LIST_TYPE_COPY, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
+                    TempDevice->CreateCommandList1(NDQ_NODEMASK, D3D12_COMMAND_LIST_TYPE_COPY, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
                     mCopyListsAndStatus.push_back(ndq::unique_ptr<CommandListAndStatus>(new CommandListAndStatus(ndq::COMMAND_LIST_TYPE::COPY, Allocator, List)));
 
                     TempDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(Allocator.ReleaseAndGetAddressOf()));
-                    TempDevice->CreateCommandList1(NODEMASK, D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
+                    TempDevice->CreateCommandList1(NDQ_NODEMASK, D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
                     mComputeListsAndStatus.push_back(ndq::unique_ptr<CommandListAndStatus>(new CommandListAndStatus(ndq::COMMAND_LIST_TYPE::COMPUTE, Allocator, List)));
                 }
             }
@@ -597,7 +596,7 @@ namespace Internal
             Microsoft::WRL::ComPtr<ID3D12CommandAllocator> Allocator;
             Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> List;
             mDevice->CreateCommandAllocator(RawType, IID_PPV_ARGS(&Allocator));
-            mDevice->CreateCommandList1(NODEMASK, RawType, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
+            mDevice->CreateCommandList1(NDQ_NODEMASK, RawType, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
 
             ndq::unique_ptr<CommandListAndStatus> TempPtr(new CommandListAndStatus(type, Allocator, List));
             TempPtr->mStatus.store(false);

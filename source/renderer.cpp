@@ -45,7 +45,7 @@ namespace Internal
         {
             auto pDevice = (ID3D12Device4*)ndq::GetGraphicsDevice()->GetRawDevice();
 
-            D3D12_ROOT_SIGNATURE_DESC rootSigDesc{};
+            D3D12_ROOT_SIGNATURE_DESC1 rootSigDesc{};
             rootSigDesc.NumParameters = 0;
             rootSigDesc.pParameters = nullptr;
             rootSigDesc.NumStaticSamplers = 0;
@@ -54,14 +54,18 @@ namespace Internal
                 D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED |
                 D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
 
-            // TODO
-            //ID3DBlob* serializedRootSig = nullptr;
-            //ID3DBlob* errorBlob = nullptr;
-            //if (FAILED(D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &serializedRootSig, &errorBlob)))
-            //{
-            //    throw;
-            //}
+            ID3DBlob* serializedRootSig = nullptr;
+
+            D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc{};
+            desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+            desc.Desc_1_1 = rootSigDesc;
+            D3D12SerializeVersionedRootSignature(&desc, &serializedRootSig, nullptr);
+
+            pDevice->CreateRootSignature(NDQ_NODEMASK, serializedRootSig->GetBufferPointer(), serializedRootSig->GetBufferSize(), IID_PPV_ARGS(&mRootSignature));
+
+            serializedRootSig->Release();
         }
+
         void BeginGuiFrame()
         {
             ImGui_ImplDX12_NewFrame();
