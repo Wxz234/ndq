@@ -54,7 +54,7 @@ namespace Internal
                 D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED |
                 D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
 
-            ID3DBlob* serializedRootSig = nullptr;
+            Microsoft::WRL::ComPtr<ID3DBlob> serializedRootSig;
 
             D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc{};
             desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
@@ -62,8 +62,6 @@ namespace Internal
             D3D12SerializeVersionedRootSignature(&desc, &serializedRootSig, nullptr);
 
             pDevice->CreateRootSignature(NDQ_NODEMASK, serializedRootSig->GetBufferPointer(), serializedRootSig->GetBufferSize(), IID_PPV_ARGS(&mRootSignature));
-
-            serializedRootSig->Release();
         }
 
         void BeginGuiFrame()

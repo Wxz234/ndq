@@ -26,6 +26,7 @@ target_sources(ndq PUBLIC FILE_SET CXX_MODULES FILES
     "render_data.cpp"
     "gltf.cpp"
     "camera.cpp"
+    "asset.cpp"
 )
 
 target_compile_options(ndq PUBLIC /wd4005 /wd5105 /wd26495)

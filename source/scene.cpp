@@ -9,6 +9,7 @@ import :gltf;
 import :smart_ptr;
 import :camera;
 import :render_data;
+import :asset;
 
 export namespace ndq
 {
@@ -23,7 +24,7 @@ export namespace ndq
         virtual void SetWidth(uint32 w) = 0;
         virtual void SetHeight(uint32 h) = 0;
         virtual void Update(float t) = 0;
-        virtual void LoadStaticModel(const char* path) = 0;
+        //virtual void LoadStaticModel(const char* path) = 0;
         virtual const RenderData* GetRenderData() const = 0;
     };
 }

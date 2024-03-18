@@ -15,3 +15,4 @@ export import :smart_ptr;
 export import :gltf;
 export import :render_data;
 export import :camera;
+export import :asset;
