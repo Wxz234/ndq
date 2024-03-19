@@ -188,11 +188,6 @@ export namespace ndq
 
         void PostUpdate()
         {
-            auto GraphicsDevice = GetGraphicsDevice();
-            if (GraphicsDevice->NeedGarbageCollection())
-            {
-                GraphicsDevice->CollectCommandList();
-            }
         }
     };
 }

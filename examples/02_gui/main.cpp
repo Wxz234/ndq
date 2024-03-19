@@ -13,7 +13,10 @@ struct App : public IApplication
         pRenderer = CreateRenderer(RENDERER_TYPE::DEFAULT);
     }
 
-    void Finalize() {}
+    void Finalize()
+    {
+        RemoveRenderer(pRenderer);
+    }
 
     void Update(float t)
     {
@@ -26,7 +29,7 @@ struct App : public IApplication
         pRenderer->Draw();
     }
 
-    shared_ptr<IRenderer> pRenderer;
+    IRenderer* pRenderer = nullptr;
 };
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)

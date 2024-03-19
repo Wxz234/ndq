@@ -8,7 +8,6 @@ module;
 export module ndq:gui;
 
 import :rhi;
-import :smart_ptr;
 
 namespace ndq
 {
@@ -18,7 +17,7 @@ namespace ndq
         virtual void Submit(ICommandList* pList) = 0;
     };
 
-    shared_ptr<IGui> GetGui();
+    IGui* GetGui();
 }
 
 namespace Internal
@@ -93,24 +92,22 @@ namespace Internal
 
     void InitializeGui(HWND hwnd)
     {
-        auto TempGui = ndq::GetGui();
-        auto TempPtr = dynamic_cast<Gui*>(TempGui.get());
+        auto TempPtr = dynamic_cast<Gui*>(ndq::GetGui());
         TempPtr->Initialize(hwnd);
     }
 
     void FinalizeGui()
     {
-        auto TempGui = ndq::GetGui();
-        auto TempPtr = dynamic_cast<Gui*>(TempGui.get());
+        auto TempPtr = dynamic_cast<Gui*>(ndq::GetGui());
         TempPtr->Release();
     }
 }
 
 namespace ndq
 {
-    shared_ptr<IGui> GetGui()
+    IGui* GetGui()
     {
-        static shared_ptr<IGui> Gui(new Internal::Gui);
-        return Gui;
+        static std::shared_ptr<IGui> Gui(new Internal::Gui);
+        return Gui.get();
     }
 }

@@ -11,7 +11,6 @@ export import :system;
 export import :window;
 export import :mesh;
 export import :image;
-export import :smart_ptr;
 export import :gltf;
 export import :render_data;
 export import :camera;

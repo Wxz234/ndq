@@ -5,7 +5,6 @@ module;
 export module ndq:rhi;
 
 import :platform;
-import :smart_ptr;
 
 #define SWAP_CHAIN_BUFFER_COUNT 3
 #define SWAP_CHAIN_FORMAT DXGI_FORMAT_R8G8B8A8_UNORM
@@ -54,9 +53,7 @@ export namespace ndq
         virtual uint32 GetSwapChainBufferCount() const = 0;
         virtual RESOURCE_FORMAT GetSwapChainFormat() const = 0;
         virtual void Wait(COMMAND_LIST_TYPE type) = 0;
-        virtual shared_ptr<ICommandList> GetCommandList(COMMAND_LIST_TYPE type) = 0;
-        virtual bool NeedGarbageCollection() const = 0;
-        virtual void CollectCommandList() = 0;
+        virtual ICommandList* GetCommandList(COMMAND_LIST_TYPE type) = 0;
         virtual void* GetRawDevice() const = 0;
     };
 
@@ -198,8 +195,15 @@ namespace Internal
             Factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&Adapter));
 
             auto _D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)GetDllExport(GetDll(DllType::D3D12), "D3D12CreateDevice");
-            _D3D12CreateDevice(Adapter.Get(), D3D_FEATURE_LEVEL_12_2, IID_PPV_ARGS(&mDevice));
-            CreateInternalCMDQueue();
+            _D3D12CreateDevice(Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&mDevice));
+
+            D3D12_COMMAND_QUEUE_DESC QueueDesc{};
+            QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+            mDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&mGraphicsQueue));
+            QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+            mDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&mCopyQueue));
+            QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
+            mDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&mComputeQueue));
 
             DXGI_SWAP_CHAIN_DESC1 ScDesc{};
             ScDesc.BufferCount = SWAP_CHAIN_BUFFER_COUNT;
@@ -252,27 +256,6 @@ namespace Internal
             }
 
             mStates.resize(SWAP_CHAIN_BUFFER_COUNT, D3D12_RESOURCE_STATE_PRESENT);
-
-            {
-                Microsoft::WRL::ComPtr<ID3D12CommandAllocator> Allocator;
-                Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> List;
-
-                for (ndq::uint32 i = 0; i < 2; ++i)
-                {
-                    ID3D12Device4* TempDevice = reinterpret_cast<ID3D12Device4*>(GetRawDevice());
-                    TempDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(Allocator.ReleaseAndGetAddressOf()));
-                    TempDevice->CreateCommandList1(NDQ_NODEMASK, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
-                    mGraphicsListsAndStatus.push_back(ndq::unique_ptr<CommandListAndStatus>(new CommandListAndStatus(ndq::COMMAND_LIST_TYPE::GRAPHICS, Allocator, List)));
-
-                    TempDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(Allocator.ReleaseAndGetAddressOf()));
-                    TempDevice->CreateCommandList1(NDQ_NODEMASK, D3D12_COMMAND_LIST_TYPE_COPY, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
-                    mCopyListsAndStatus.push_back(ndq::unique_ptr<CommandListAndStatus>(new CommandListAndStatus(ndq::COMMAND_LIST_TYPE::COPY, Allocator, List)));
-
-                    TempDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(Allocator.ReleaseAndGetAddressOf()));
-                    TempDevice->CreateCommandList1(NDQ_NODEMASK, D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
-                    mComputeListsAndStatus.push_back(ndq::unique_ptr<CommandListAndStatus>(new CommandListAndStatus(ndq::COMMAND_LIST_TYPE::COMPUTE, Allocator, List)));
-                }
-            }
         }
 
         ~GraphicsDevice()
@@ -301,9 +284,9 @@ namespace Internal
                 mComputeFence.Reset();
                 mComputeEvent.Close();
 
-                mGraphicsListsAndStatus.clear();
-                mCopyListsAndStatus.clear();
-                mComputeListsAndStatus.clear();
+                mGraphicsLists.clear();
+                mCopyLists.clear();
+                mComputeLists.clear();
             }
             bIsReleased = true;
         }
@@ -312,36 +295,28 @@ namespace Internal
         {
             mSwapChain->Present(1, 0);
             MoveToNextFrame();
-            ++mGarbageFrame;
         }
 
         void ExecuteCommandList(ndq::ICommandList* pList)
         {
             auto Type = pList->GetType();
             ID3D12CommandList* Lists[1] = { reinterpret_cast<ID3D12CommandList*> (pList->GetRawList()) };
-
-
+            CommandList* pRealList = dynamic_cast<CommandList*>(pList);
             std::lock_guard<std::mutex> lock(mutex_);
             switch (Type)
             {
             case ndq::COMMAND_LIST_TYPE::GRAPHICS:
-                mGraphicsUsedCommandLists.emplace_back(pList);
-                mGraphicsUsedCommandListsSignal.emplace_back(mGraphicsFenceValue);
-                ++mGraphicsUsedCommandListsCount;
+                pRealList->mValue = mGraphicsFenceValue;
                 mGraphicsQueue->ExecuteCommandLists(1, Lists);
                 mGraphicsQueue->Signal(mGraphicsFence.Get(), mGraphicsFenceValue++);
                 break;
             case ndq::COMMAND_LIST_TYPE::COPY:
-                mCopyUsedCommandLists.emplace_back(pList);
-                mCopyUsedCommandListsSignal.emplace_back(mCopyFenceValue);
-                ++mCopyUsedCommandListsCount;
+                pRealList->mValue = mCopyFenceValue;
                 mCopyQueue->ExecuteCommandLists(1, Lists);
                 mCopyQueue->Signal(mCopyFence.Get(), mCopyFenceValue++);
                 break;
             case ndq::COMMAND_LIST_TYPE::COMPUTE:
-                mComputeUsedCommandLists.emplace_back(pList);
-                mComputeUsedCommandListsSignal.emplace_back(mComputeFenceValue);
-                ++mComputeUsedCommandListsCount;
+                pRealList->mValue = mComputeFenceValue;
                 mComputeQueue->ExecuteCommandLists(1, Lists);
                 mComputeQueue->Signal(mComputeFence.Get(), mComputeFenceValue++);
                 break;
@@ -439,17 +414,6 @@ namespace Internal
             mFenceValue[mFrameIndex] = CurrentFenceValue + 1;
         }
 
-        void CreateInternalCMDQueue()
-        {
-            D3D12_COMMAND_QUEUE_DESC QueueDesc{};
-            QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-            mDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&mGraphicsQueue));
-            QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
-            mDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&mCopyQueue));
-            QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
-            mDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&mComputeQueue));
-        }
-
         void BuildRT()
         {
             auto CpuHandle = mRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
@@ -488,6 +452,81 @@ namespace Internal
             return Queue;
         }
 
+        ndq::ICommandList* GetCommandList(ndq::COMMAND_LIST_TYPE type)
+        {
+            ndq::uint64 CurrentValue;
+            ndq::size_type ListCount;
+            switch (type)
+            {
+            case ndq::COMMAND_LIST_TYPE::GRAPHICS:
+                CurrentValue = mGraphicsFence->GetCompletedValue();
+                ListCount = mGraphicsLists.size();
+                for (ndq::size_type i = 0; i < ListCount; ++i)
+                {
+                    if (mGraphicsLists[i]->mValue <= CurrentValue)
+                    {
+                        return mGraphicsLists[i].get();
+                    }
+                }
+                break;
+            case ndq::COMMAND_LIST_TYPE::COPY:
+                CurrentValue = mCopyFence->GetCompletedValue();
+                ListCount = mCopyLists.size();
+                for (ndq::size_type i = 0; i < ListCount; ++i)
+                {
+                    if (mCopyLists[i]->mValue <= CurrentValue)
+                    {
+                        return mCopyLists[i].get();
+                    }
+                }
+                break;
+            case ndq::COMMAND_LIST_TYPE::COMPUTE:
+                CurrentValue = mComputeFence->GetCompletedValue();
+                ListCount = mComputeLists.size();
+                for (ndq::size_type i = 0; i < ListCount; ++i)
+                {
+                    if (mComputeLists[i]->mValue <= CurrentValue)
+                    {
+                        return mComputeLists[i].get();
+                    }
+                }
+                break;
+            }
+
+            auto TempPtr = CreateList(type);
+            return TempPtr.get();
+        }
+
+        std::shared_ptr<ndq::ICommandList> CreateList(ndq::COMMAND_LIST_TYPE type)
+        {
+            ID3D12Device4* TempDevice = reinterpret_cast<ID3D12Device4*>(GetRawDevice());
+            std::shared_ptr<CommandList> TempPtr;
+            Microsoft::WRL::ComPtr<ID3D12CommandAllocator> Allocator;
+            Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> List;
+            switch (type)
+            {
+            case ndq::COMMAND_LIST_TYPE::GRAPHICS:
+                TempDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(Allocator.ReleaseAndGetAddressOf()));
+                TempDevice->CreateCommandList1(NDQ_NODEMASK, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
+                TempPtr = std::shared_ptr<CommandList>(new CommandList(type, Allocator, List));
+                mGraphicsLists.push_back(TempPtr);
+                break;
+            case ndq::COMMAND_LIST_TYPE::COPY:
+                TempDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(Allocator.ReleaseAndGetAddressOf()));
+                TempDevice->CreateCommandList1(NDQ_NODEMASK, D3D12_COMMAND_LIST_TYPE_COPY, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
+                TempPtr = std::shared_ptr<CommandList>(new CommandList(type, Allocator, List));
+                mCopyLists.push_back(TempPtr);
+                break;
+            case ndq::COMMAND_LIST_TYPE::COMPUTE:
+                TempDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(Allocator.ReleaseAndGetAddressOf()));
+                TempDevice->CreateCommandList1(NDQ_NODEMASK, D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
+                TempPtr = std::shared_ptr<CommandList>(new CommandList(type, Allocator, List));
+                mComputeLists.push_back(TempPtr);
+                break;
+            }
+            return TempPtr;
+        }
+
         HWND mHwnd = NULL;
 
         ndq::uint32 mRTVHandle = 0;
@@ -516,180 +555,11 @@ namespace Internal
         Microsoft::WRL::ComPtr<ID3D12Fence1> mComputeFence;
         Microsoft::WRL::Wrappers::Event mComputeEvent;
 
-        std::vector<ndq::ICommandList*> mGraphicsUsedCommandLists;
-        std::vector<ndq::uint64> mGraphicsUsedCommandListsSignal;
-        ndq::size_type mGraphicsUsedCommandListsCount = 0;
-        std::vector<ndq::ICommandList*> mCopyUsedCommandLists;
-        std::vector<ndq::uint64> mCopyUsedCommandListsSignal;
-        ndq::size_type mCopyUsedCommandListsCount = 0;
-        std::vector<ndq::ICommandList*> mComputeUsedCommandLists;
-        std::vector<ndq::uint64> mComputeUsedCommandListsSignal;
-        ndq::size_type mComputeUsedCommandListsCount = 0;
-
-        ndq::uint32 mGarbageFrame = 0;
-
-        ndq::shared_ptr<ndq::ICommandList> GetCommandList(ndq::COMMAND_LIST_TYPE type)
-        {
-            ndq::size_type Count;
-            switch (type)
-            {
-            case ndq::COMMAND_LIST_TYPE::GRAPHICS:
-                Count = mGraphicsListsAndStatus.size();
-                for (ndq::size_type i = 0; i < Count; ++i)
-                {
-                    bool Status = true;
-                    bool Result = mGraphicsListsAndStatus[i]->mStatus.compare_exchange_strong(Status, false);
-                    if (Result)
-                    {
-                        return mGraphicsListsAndStatus[i]->mCommandList;
-                    }
-                }
-                break;
-            case ndq::COMMAND_LIST_TYPE::COPY:
-                Count = mCopyListsAndStatus.size();
-                for (ndq::size_type i = 0; i < Count; ++i)
-                {
-                    bool Status = true;
-                    bool Result = mCopyListsAndStatus[i]->mStatus.compare_exchange_strong(Status, false);
-                    if (Result)
-                    {
-                        return mCopyListsAndStatus[i]->mCommandList;
-                    }
-                }
-                break;
-            case ndq::COMMAND_LIST_TYPE::COMPUTE:
-                Count = mComputeListsAndStatus.size();
-                for (ndq::size_type i = 0; i < Count; ++i)
-                {
-                    bool Status = true;
-                    bool Result = mComputeListsAndStatus[i]->mStatus.compare_exchange_strong(Status, false);
-                    if (Result)
-                    {
-                        return mComputeListsAndStatus[i]->mCommandList;
-                    }
-                }
-                break;
-            }
-
-            return CreateList(type);
-        }
-
-        ndq::shared_ptr<ndq::ICommandList> CreateList(ndq::COMMAND_LIST_TYPE type)
-        {
-            concurrency::concurrent_vector<ndq::unique_ptr<CommandListAndStatus>>* ListAndStatus;
-            D3D12_COMMAND_LIST_TYPE RawType;
-
-            switch (type)
-            {
-            case ndq::COMMAND_LIST_TYPE::GRAPHICS:
-                ListAndStatus = &mGraphicsListsAndStatus;
-                RawType = D3D12_COMMAND_LIST_TYPE_DIRECT;
-                break;
-            case ndq::COMMAND_LIST_TYPE::COPY:
-                ListAndStatus = &mCopyListsAndStatus;
-                RawType = D3D12_COMMAND_LIST_TYPE_COPY;
-                break;
-            case ndq::COMMAND_LIST_TYPE::COMPUTE:
-                ListAndStatus = &mComputeListsAndStatus;
-                RawType = D3D12_COMMAND_LIST_TYPE_COMPUTE;
-                break;
-            }
-
-            Microsoft::WRL::ComPtr<ID3D12CommandAllocator> Allocator;
-            Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> List;
-            mDevice->CreateCommandAllocator(RawType, IID_PPV_ARGS(&Allocator));
-            mDevice->CreateCommandList1(NDQ_NODEMASK, RawType, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
-
-            ndq::unique_ptr<CommandListAndStatus> TempPtr(new CommandListAndStatus(type, Allocator, List));
-            TempPtr->mStatus.store(false);
-            auto TempCmdListPtr = TempPtr->mCommandList;
-            ListAndStatus->push_back(std::move(TempPtr));
-            return TempCmdListPtr;
-        }
-
-        bool NeedGarbageCollection() const
-        {
-            return (mGarbageFrame >= 5) ? true : false;
-        }
-
-        void CollectCommandList()
-        {
-            std::vector<ndq::size_type> GraphicsRemoveIndices;
-            std::vector<ndq::size_type> CopyRemoveIndices;
-            std::vector<ndq::size_type> ComputeRemoveIndices;
-
-            for (ndq::size_type i = 0; i < mGraphicsUsedCommandListsCount; ++i)
-            {
-                for (ndq::size_type j = 0; j < mGraphicsListsAndStatus.size(); ++j)
-                {
-                    if (mGraphicsUsedCommandLists[i] == mGraphicsListsAndStatus[j]->mCommandList.get() && mGraphicsUsedCommandListsSignal[i] < mGraphicsFence->GetCompletedValue())
-                    {
-                        mGraphicsListsAndStatus[j]->mStatus.store(true);
-                        GraphicsRemoveIndices.emplace_back(i);
-                    }
-                }
-            }
-
-            for (ndq::size_type i = 0; i < mCopyUsedCommandListsCount; ++i)
-            {
-                for (ndq::size_type j = 0; j < mCopyListsAndStatus.size(); ++j)
-                {
-                    if (mCopyUsedCommandLists[i] == mCopyListsAndStatus[j]->mCommandList.get() && mCopyUsedCommandListsSignal[i] < mCopyFence->GetCompletedValue())
-                    {
-                        mCopyListsAndStatus[j]->mStatus.store(true);
-                        CopyRemoveIndices.emplace_back(i);
-                    }
-                }
-            }
-
-            for (ndq::size_type i = 0; i < mComputeUsedCommandListsCount; ++i)
-            {
-                for (ndq::size_type j = 0; j < mComputeListsAndStatus.size(); ++j)
-                {
-                    if (mComputeUsedCommandLists[i] == mComputeListsAndStatus[j]->mCommandList.get() && mComputeUsedCommandListsSignal[i] < mComputeFence->GetCompletedValue())
-                    {
-                        mComputeListsAndStatus[j]->mStatus.store(true);
-                        ComputeRemoveIndices.emplace_back(i);
-                    }
-                }
-            }
-
-            for (auto it = GraphicsRemoveIndices.rbegin(); it != GraphicsRemoveIndices.rend(); ++it)
-            {
-                mGraphicsUsedCommandLists.erase(mGraphicsUsedCommandLists.begin() + *it);
-                mGraphicsUsedCommandListsSignal.erase(mGraphicsUsedCommandListsSignal.begin() + *it);
-            }
-            for (auto it = CopyRemoveIndices.rbegin(); it != CopyRemoveIndices.rend(); ++it)
-            {
-                mCopyUsedCommandLists.erase(mCopyUsedCommandLists.begin() + *it);
-                mCopyUsedCommandListsSignal.erase(mCopyUsedCommandListsSignal.begin() + *it);
-            }
-            for (auto it = ComputeRemoveIndices.rbegin(); it != ComputeRemoveIndices.rend(); ++it)
-            {
-                mComputeUsedCommandLists.erase(mComputeUsedCommandLists.begin() + *it);
-                mComputeUsedCommandListsSignal.erase(mComputeUsedCommandListsSignal.begin() + *it);
-            }
-
-            mGraphicsUsedCommandListsCount -= GraphicsRemoveIndices.size();
-            mCopyUsedCommandListsCount -= CopyRemoveIndices.size();
-            mComputeUsedCommandListsCount -= ComputeRemoveIndices.size();
-
-            mGarbageFrame = 0;
-        }
-
-        struct CommandListAndStatus
-        {
-            CommandListAndStatus(ndq::COMMAND_LIST_TYPE type, Microsoft::WRL::ComPtr<ID3D12CommandAllocator> pAllocator, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList)
-                : mCommandList(new CommandList (type, pAllocator, pList)), mStatus(true) {}
-            ndq::shared_ptr<ndq::ICommandList> mCommandList;
-            std::atomic_bool mStatus;
-        };
-
-        concurrency::concurrent_vector<ndq::unique_ptr<CommandListAndStatus>> mGraphicsListsAndStatus;
-        concurrency::concurrent_vector<ndq::unique_ptr<CommandListAndStatus>> mCopyListsAndStatus;
-        concurrency::concurrent_vector<ndq::unique_ptr<CommandListAndStatus>> mComputeListsAndStatus;
-
         bool bIsReleased = false;
+
+        concurrency::concurrent_vector<std::shared_ptr<CommandList>> mGraphicsLists;
+        concurrency::concurrent_vector<std::shared_ptr<CommandList>> mCopyLists;
+        concurrency::concurrent_vector<std::shared_ptr<CommandList>> mComputeLists;
 
         std::mutex mutex_;
     };

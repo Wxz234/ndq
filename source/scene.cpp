@@ -6,7 +6,6 @@ export module ndq:scene;
 
 import :platform;
 import :gltf;
-import :smart_ptr;
 import :camera;
 import :render_data;
 import :asset;
@@ -24,7 +23,6 @@ export namespace ndq
         virtual void SetWidth(uint32 w) = 0;
         virtual void SetHeight(uint32 h) = 0;
         virtual void Update(float t) = 0;
-        //virtual void LoadStaticModel(const char* path) = 0;
         virtual const RenderData* GetRenderData() const = 0;
     };
 }
@@ -34,7 +32,13 @@ namespace ndq
     class Scene : public IScene
     {
     public:
-        Scene()
+        virtual ~Scene() {}
+    };
+
+    class Scene_Default : public Scene
+    {
+    public:
+        Scene_Default()
         {
             Data.Width = &Width;
             Data.Height = &Height;
@@ -90,16 +94,21 @@ namespace ndq
 
 export namespace ndq
 {
-
-    shared_ptr<IScene> CreateScene(SCENE_TYPE type)
+    IScene* CreateScene(SCENE_TYPE type)
     {
-        shared_ptr<IScene> temp;
+        IScene* temp = nullptr;
         if (type == SCENE_TYPE::DEFAULT)
         {
-            temp = shared_ptr<IScene>(new Scene);
+            temp = new Scene_Default;
         }
 
         return temp;
+    }
+
+    void RemoveScene(IScene* pScene)
+    {
+        auto TempScenePtr = dynamic_cast<Scene*>(pScene);
+        delete TempScenePtr;
     }
 }
 

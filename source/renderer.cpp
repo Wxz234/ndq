@@ -9,7 +9,6 @@ export module ndq:renderer;
 
 import :gui;
 import :rhi;
-import :smart_ptr;
 import :render_data;
 import :gltf;
 
@@ -33,7 +32,8 @@ export namespace ndq
         virtual void Draw(const RenderData* data = nullptr) = 0;
     };
 
-    shared_ptr<IRenderer> CreateRenderer(RENDERER_TYPE type);
+    IRenderer* CreateRenderer(RENDERER_TYPE type);
+    void RemoveRenderer(IRenderer* pRenderer);
 }
 
 namespace Internal
@@ -41,7 +41,13 @@ namespace Internal
     class Renderer : public ndq::IRenderer
     {
     public:
-        Renderer()
+        virtual ~Renderer() {}
+    };
+
+    class Renderer_Default : public Renderer
+    {
+    public:
+        Renderer_Default()
         {
             auto pDevice = (ID3D12Device4*)ndq::GetGraphicsDevice()->GetRawDevice();
 
@@ -61,7 +67,7 @@ namespace Internal
             desc.Desc_1_1 = rootSigDesc;
             D3D12SerializeVersionedRootSignature(&desc, &serializedRootSig, nullptr);
 
-            pDevice->CreateRootSignature(NDQ_NODEMASK, serializedRootSig->GetBufferPointer(), serializedRootSig->GetBufferSize(), IID_PPV_ARGS(&mRootSignature));
+            //pDevice->CreateRootSignature(NDQ_NODEMASK, serializedRootSig->GetBufferPointer(), serializedRootSig->GetBufferSize(), IID_PPV_ARGS(&mRootSignature));
         }
 
         void BeginGuiFrame()
@@ -111,17 +117,17 @@ namespace Internal
             auto GraphicsDevice = ndq::GetGraphicsDevice();
             auto CommandList = GraphicsDevice->GetCommandList(ndq::COMMAND_LIST_TYPE::GRAPHICS);
             CommandList->Open();
-            GraphicsDevice->SetCurrentRenderTargetState(CommandList.get(), ndq::RESOURCE_STATE::RENDER_TARGET);
-            GraphicsDevice->BindCurrentRTV(CommandList.get());
+            GraphicsDevice->SetCurrentRenderTargetState(CommandList, ndq::RESOURCE_STATE::RENDER_TARGET);
+            GraphicsDevice->BindCurrentRTV(CommandList);
 
             float black[4] = { 0.f,0.f,0.f,1.f };
-            GraphicsDevice->ClearCurrentRTV(CommandList.get(), black);
+            GraphicsDevice->ClearCurrentRTV(CommandList, black);
 
-            ndq::GetGui()->Submit(CommandList.get());
-            GraphicsDevice->SetCurrentRenderTargetState(CommandList.get(), ndq::RESOURCE_STATE::COMMON);
+            ndq::GetGui()->Submit(CommandList);
+            GraphicsDevice->SetCurrentRenderTargetState(CommandList, ndq::RESOURCE_STATE::COMMON);
             CommandList->Close();
 
-            GraphicsDevice->ExecuteCommandList(CommandList.get());
+            GraphicsDevice->ExecuteCommandList(CommandList);
             GraphicsDevice->Present();
         }
 
@@ -132,13 +138,19 @@ namespace Internal
 
 namespace ndq
 {
-    shared_ptr<IRenderer> CreateRenderer(RENDERER_TYPE type)
+    IRenderer* CreateRenderer(RENDERER_TYPE type)
     {
-        shared_ptr<IRenderer> temp;
+        IRenderer* temp = nullptr;
         if (type == RENDERER_TYPE::DEFAULT)
         {
-            temp = shared_ptr<IRenderer>(new Internal::Renderer);
+            temp = new Internal::Renderer_Default;
         }
         return temp;
+    }
+
+    void RemoveRenderer(IRenderer* pRenderer)
+    {
+        auto TempRendererPtr = dynamic_cast<Internal::Renderer*>(pRenderer);
+        delete TempRendererPtr;
     }
 }

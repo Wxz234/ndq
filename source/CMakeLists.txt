@@ -22,7 +22,6 @@ target_sources(ndq PUBLIC FILE_SET CXX_MODULES FILES
     "system.cpp"
     "mesh.cpp"
     "image.cpp"
-    "smart_ptr.cpp"
     "render_data.cpp"
     "gltf.cpp"
     "camera.cpp"
