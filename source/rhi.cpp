@@ -60,7 +60,7 @@ export namespace ndq
         virtual void* GetRawDevice() const = 0;
     };
 
-    shared_ptr<IGraphicsDevice> GetGraphicsDevice();
+    IGraphicsDevice* GetGraphicsDevice();
 }
 
 namespace Internal
@@ -138,6 +138,7 @@ namespace Internal
     public:
         CommandList(ndq::COMMAND_LIST_TYPE type, Microsoft::WRL::ComPtr<ID3D12CommandAllocator> pAllocator, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList)
         {
+            mValue = 0;
             mType = type;
             mAllocator = pAllocator;
             mList = pList;
@@ -164,6 +165,7 @@ namespace Internal
             return mList.Get();
         }
 
+        ndq::uint64 mValue;
         ndq::COMMAND_LIST_TYPE mType;
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mAllocator;
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mList;
@@ -318,6 +320,8 @@ namespace Internal
             auto Type = pList->GetType();
             ID3D12CommandList* Lists[1] = { reinterpret_cast<ID3D12CommandList*> (pList->GetRawList()) };
 
+
+            std::lock_guard<std::mutex> lock(mutex_);
             switch (Type)
             {
             case ndq::COMMAND_LIST_TYPE::GRAPHICS:
@@ -340,8 +344,6 @@ namespace Internal
                 ++mComputeUsedCommandListsCount;
                 mComputeQueue->ExecuteCommandLists(1, Lists);
                 mComputeQueue->Signal(mComputeFence.Get(), mComputeFenceValue++);
-                break;
-            default:
                 break;
             }
         }
@@ -688,29 +690,28 @@ namespace Internal
         concurrency::concurrent_vector<ndq::unique_ptr<CommandListAndStatus>> mComputeListsAndStatus;
 
         bool bIsReleased = false;
-    };
 
+        std::mutex mutex_;
+    };
 
     void InitializeRHI(HWND hwnd, UINT width, UINT height)
     {
-        auto TempDevice = ndq::GetGraphicsDevice();
-        auto TempPtr = dynamic_cast<GraphicsDevice*>(TempDevice.get());
+        auto TempPtr = dynamic_cast<GraphicsDevice*>(ndq::GetGraphicsDevice());
         TempPtr->Initialize(hwnd, width, height);
     }
 
     void FinalizeRHI()
     {
-        auto TempDevice = ndq::GetGraphicsDevice();
-        auto TempPtr = dynamic_cast<GraphicsDevice*>(TempDevice.get());
+        auto TempPtr = dynamic_cast<GraphicsDevice*>(ndq::GetGraphicsDevice());
         TempPtr->Release();
     }
 }
 
 namespace ndq
 {
-    shared_ptr<IGraphicsDevice> GetGraphicsDevice()
+    IGraphicsDevice* GetGraphicsDevice()
     {
-        static shared_ptr<IGraphicsDevice> Device(new Internal::GraphicsDevice);
-        return Device;
+        static std::shared_ptr<IGraphicsDevice> Device(new Internal::GraphicsDevice);
+        return Device.get();
     }
 }

@@ -28,6 +28,7 @@
 #include <cstdint>
 #include <exception>
 #include <memory>
+#include <mutex>
 #include <numeric>
 #include <string>
 #include <type_traits>
