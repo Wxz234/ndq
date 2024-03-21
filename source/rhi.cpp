@@ -135,6 +135,7 @@ namespace Internal
     public:
         CommandList(ndq::COMMAND_LIST_TYPE type, Microsoft::WRL::ComPtr<ID3D12CommandAllocator> pAllocator, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList)
         {
+            bIsBusy.store(false);
             mValue = 0;
             mType = type;
             mAllocator = pAllocator;
@@ -162,6 +163,7 @@ namespace Internal
             return mList.Get();
         }
 
+        std::atomic_bool bIsBusy;
         ndq::uint64 mValue;
         ndq::COMMAND_LIST_TYPE mType;
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mAllocator;
@@ -321,6 +323,8 @@ namespace Internal
                 mComputeQueue->Signal(mComputeFence.Get(), mComputeFenceValue++);
                 break;
             }
+
+            pRealList->bIsBusy.store(false);
         }
 
         void* GetRawDevice() const
@@ -456,16 +460,21 @@ namespace Internal
         {
             ndq::uint64 CurrentValue;
             ndq::size_type ListCount;
+            bool Expected = false;
             switch (type)
             {
             case ndq::COMMAND_LIST_TYPE::GRAPHICS:
                 CurrentValue = mGraphicsFence->GetCompletedValue();
                 ListCount = mGraphicsLists.size();
                 for (ndq::size_type i = 0; i < ListCount; ++i)
-                {
-                    if (mGraphicsLists[i]->mValue <= CurrentValue)
+                { 
+                    if (mGraphicsLists[i]->bIsBusy.compare_exchange_strong(Expected, true))
                     {
-                        return mGraphicsLists[i].get();
+                        if (mGraphicsLists[i]->mValue <= CurrentValue)
+                        {
+                            return mGraphicsLists[i].get();
+                        }
+                        mGraphicsLists[i]->bIsBusy.store(false);
                     }
                 }
                 break;
@@ -474,9 +483,13 @@ namespace Internal
                 ListCount = mCopyLists.size();
                 for (ndq::size_type i = 0; i < ListCount; ++i)
                 {
-                    if (mCopyLists[i]->mValue <= CurrentValue)
+                    if (mCopyLists[i]->bIsBusy.compare_exchange_strong(Expected, true))
                     {
-                        return mCopyLists[i].get();
+                        if (mCopyLists[i]->mValue <= CurrentValue)
+                        {
+                            return mCopyLists[i].get();
+                        }
+                        mCopyLists[i]->bIsBusy.store(false);
                     }
                 }
                 break;
@@ -485,9 +498,13 @@ namespace Internal
                 ListCount = mComputeLists.size();
                 for (ndq::size_type i = 0; i < ListCount; ++i)
                 {
-                    if (mComputeLists[i]->mValue <= CurrentValue)
+                    if (mComputeLists[i]->bIsBusy.compare_exchange_strong(Expected, true))
                     {
-                        return mComputeLists[i].get();
+                        if (mComputeLists[i]->mValue <= CurrentValue)
+                        {
+                            return mComputeLists[i].get();
+                        }
+                        mComputeLists[i]->bIsBusy.store(false);
                     }
                 }
                 break;
@@ -524,6 +541,7 @@ namespace Internal
                 mComputeLists.push_back(TempPtr);
                 break;
             }
+            TempPtr->bIsBusy.store(true);
             return TempPtr;
         }
 
