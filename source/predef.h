@@ -15,6 +15,8 @@
 #include <DirectXMath.h>
 #include <dxcapi.h>
 #include <dxgi1_6.h>
+#include <wincodec.h>
+#include <wincodecsdk.h>
 #include <wrl/client.h>
 #include <wrl/wrappers/corewrappers.h>
 
