@@ -11,10 +11,6 @@ add_library(tinygltf INTERFACE "tinygltf/tiny_gltf.h")
 target_include_directories(tinygltf INTERFACE "tinygltf")
 set_target_properties(tinygltf PROPERTIES FOLDER "libraries")
 
-add_library(stb INTERFACE "stb/stb_image.h" "stb/stb_image_write.h")
-target_include_directories(stb INTERFACE "stb")
-set_target_properties(stb PROPERTIES FOLDER "libraries")
-
 add_library(json INTERFACE "json/json.hpp")
 target_include_directories(json INTERFACE "json")
 set_target_properties(json PROPERTIES FOLDER "libraries")

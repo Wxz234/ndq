@@ -43,7 +43,7 @@ namespace ndq
             Data.Width = &Width;
             Data.Height = &Height;
             Data.MainCamera = &MainCamera;
-            Data.StaticModel = &StaticModel;
+            //Data.StaticModel = &StaticModel;
             Data.DefaultSkyLight = &DefaultSkyLight;
 
             MainCamera.SetView(DirectX::XMFLOAT3(.0f, .0f, .0f), DirectX::XMFLOAT3(.0f, .0f, 1.f), DirectX::XMFLOAT3(.0f, 1.f, .0f));
@@ -69,10 +69,7 @@ namespace ndq
 
         void LoadStaticModel(const char* path)
         {
-            if (GLTF gltf{}; LoadGLTFStaticModel(path, gltf))
-            {
-                StaticModel.push_back(gltf);
-            }
+
         }
 
         const RenderData* GetRenderData() const
@@ -85,7 +82,7 @@ namespace ndq
         DirectX::XMFLOAT4 DefaultSkyLight;
         Camera MainCamera;
 
-        std::vector<GLTF> StaticModel;
+        //std::vector<GLTF> StaticModel;
 
         uint32 Width = NDQ_DEFAULT_WIDTH;
         uint32 Height = NDQ_DEFAULT_HEIGHT;

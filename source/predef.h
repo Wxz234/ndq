@@ -10,6 +10,7 @@
 
 #include <Windows.h>
 
+#include <combaseapi.h>
 #include <concurrent_vector.h>
 #include <d3d12.h>
 #include <DirectXMath.h>
@@ -28,7 +29,9 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <exception>
+#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <numeric>
