@@ -62,7 +62,7 @@ export namespace ndq
     enum class IMAGE_FORMAT
     {
         UNKNOWN,
-        RGBA_U8
+        R8G8B8A8_UNORM
     };
 
     class Image
