@@ -8,17 +8,24 @@ import :platform;
 
 namespace ndq
 {
-
-}
-
-export namespace ndq
-{
-    enum class IMAGE_FORMAT
+    export enum class IMAGE_FORMAT
     {
         UNKNOWN,
         R8G8B8A8_UNORM
     };
 
+    IMAGE_FORMAT GetImageFormat(WICPixelFormatGUID format)
+    {
+        if (format == GUID_WICPixelFormat32bppRGBA)
+        {
+            return IMAGE_FORMAT::R8G8B8A8_UNORM;
+        }
+        return IMAGE_FORMAT::UNKNOWN;
+    }
+}
+
+export namespace ndq
+{
     class Image
     {
     public:
@@ -95,7 +102,6 @@ export namespace ndq
         }
 
     private:
-
         std::vector<uint8> mRawData;
         uint32 mWidth;
         uint32 mHeight;
@@ -140,6 +146,10 @@ export namespace ndq
             return Image();
         }
 
+        if (GetImageFormat(pixelFormat) == IMAGE_FORMAT::UNKNOWN)
+        {
+            
+        }
 
         return Image();
     }
