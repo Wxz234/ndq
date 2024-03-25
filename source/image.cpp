@@ -22,6 +22,15 @@ namespace ndq
         }
         return IMAGE_FORMAT::UNKNOWN;
     }
+
+    auto GetWICFormat(IMAGE_FORMAT format)
+    {
+        if (format == IMAGE_FORMAT::R8G8B8A8_UNORM)
+        {
+            return GUID_WICPixelFormat32bppRGBA;
+        }
+        return GUID_WICPixelFormatUndefined;
+    }
 }
 
 export namespace ndq
@@ -146,9 +155,19 @@ export namespace ndq
             return Image();
         }
 
-        if (GetImageFormat(pixelFormat) == IMAGE_FORMAT::UNKNOWN)
+        Microsoft::WRL::ComPtr<IWICFormatConverter> converter;
+        if (auto hr = pWIC->CreateFormatConverter(&converter); FAILED(hr))
         {
-            
+            return Image();
+        }
+
+        if (auto format = GetImageFormat(pixelFormat); format == IMAGE_FORMAT::UNKNOWN)
+        {
+
+        }
+        else
+        {
+            //return Image()
         }
 
         return Image();
