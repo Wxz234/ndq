@@ -32,6 +32,15 @@ namespace ndq
         }
         return GUID_WICPixelFormatUndefined;
     }
+
+    uint32 GetBPP(IMAGE_FORMAT format)
+    {
+        if (format == IMAGE_FORMAT::R8G8B8A8_UNORM)
+        {
+            return 32;
+        }
+        return 0;
+    }
 }
 
 export namespace ndq
@@ -121,26 +130,26 @@ export namespace ndq
     Image LoadTextureFromFile(const char* path)
     {
         Microsoft::WRL::ComPtr<IWICImagingFactory2> pWIC;
-        if (auto hr = CoCreateInstance(CLSID_WICImagingFactory2, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pWIC)); FAILED(hr))
+        if (FAILED(CoCreateInstance(CLSID_WICImagingFactory2, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pWIC))))
         {
             return Image();
         }
 
         std::filesystem::path MyPath(path);
         Microsoft::WRL::ComPtr<IWICBitmapDecoder> decoder;
-        if (auto hr = pWIC->CreateDecoderFromFilename(MyPath.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &decoder); FAILED(hr))
+        if (FAILED(pWIC->CreateDecoderFromFilename(MyPath.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &decoder)))
         {
             return Image();
         }
 
         Microsoft::WRL::ComPtr<IWICBitmapFrameDecode> frame;
-        if (auto hr = decoder->GetFrame(0, &frame); FAILED(hr))
+        if (FAILED(decoder->GetFrame(0, &frame)))
         {
             return Image();
         }
 
         uint32 width, height;
-        if (auto hr = frame->GetSize(&width, &height); FAILED(hr))
+        if (FAILED(frame->GetSize(&width, &height)))
         {
             return Image();
         }
@@ -151,41 +160,72 @@ export namespace ndq
 
         // Determine format
         WICPixelFormatGUID pixelFormat;
-        if (auto hr = frame->GetPixelFormat(&pixelFormat); FAILED(hr))
+        if (FAILED(frame->GetPixelFormat(&pixelFormat)))
+        {
+            return Image();
+        }
+
+        Microsoft::WRL::ComPtr<IWICFormatConverter> converter;
+        if (FAILED(pWIC->CreateFormatConverter(&converter)))
         {
             return Image();
         }
 
         if (auto format = GetImageFormat(pixelFormat); format == IMAGE_FORMAT::UNKNOWN)
         {
-            Microsoft::WRL::ComPtr<IWICFormatConverter> converter;
-            if (auto hr = pWIC->CreateFormatConverter(&converter); FAILED(hr))
-            {
-                return Image();
-            }
-
             for (int32 i = 1; i < static_cast<int32>(IMAGE_FORMAT::NUM); ++i)
             {
-                auto DestFormat = GetWICFormat(static_cast<IMAGE_FORMAT>(i));
+                auto Format = static_cast<IMAGE_FORMAT>(i);
+                auto DestFormat = GetWICFormat(Format);
                 BOOL CanConvert;
-                converter->CanConvert(pixelFormat, DestFormat, &CanConvert);
+                if (FAILED(converter->CanConvert(pixelFormat, DestFormat, &CanConvert)))
+                {
+                    return Image();
+                }
+
                 if (CanConvert)
                 {
-                    if (auto hr = converter->Initialize(frame.Get(), DestFormat, WICBitmapDitherTypeNone, nullptr, 0.f, WICBitmapPaletteTypeCustom); FAILED(hr))
+                    if (FAILED(converter->Initialize(frame.Get(), DestFormat, WICBitmapDitherTypeNone, nullptr, 0.f, WICBitmapPaletteTypeCustom)))
                     {
                         return Image();
                     }
                     else
                     {
+                        auto bpp = GetBPP(Format);
+                        if (bpp == 0)
+                        {
+                            return Image();
+                        }
+
+                        size_type imageSize = width * height * bpp / 8;
+                        std::vector<uint8> buffer(imageSize);
+                        if (FAILED(converter->CopyPixels(nullptr, width * (bpp / 8), buffer.size(), buffer.data())))
+                        {
+                            return Image();
+                        }
+
+                        return Image(buffer.data(), buffer.size(), width, height, Format);
 
                     }
                 }
             }
-
         }
         else
         {
-            //return Image()
+            auto bpp = GetBPP(format);
+            if (bpp == 0)
+            {
+                return Image();
+            }
+
+            size_type imageSize = width * height * bpp / 8;
+            std::vector<uint8> buffer(imageSize);
+            if (FAILED(converter->CopyPixels(nullptr, width * (bpp / 8), buffer.size(), buffer.data())))
+            {
+                return Image();
+            }
+
+            return Image(buffer.data(), buffer.size(), width, height, format);
         }
 
         return Image();
