@@ -11,7 +11,8 @@ namespace ndq
     export enum class IMAGE_FORMAT
     {
         UNKNOWN,
-        R8G8B8A8_UNORM
+        R8G8B8A8_UNORM,
+        NUM
     };
 
     IMAGE_FORMAT GetImageFormat(WICPixelFormatGUID format)
@@ -23,7 +24,7 @@ namespace ndq
         return IMAGE_FORMAT::UNKNOWN;
     }
 
-    auto GetWICFormat(IMAGE_FORMAT format)
+    WICPixelFormatGUID GetWICFormat(IMAGE_FORMAT format)
     {
         if (format == IMAGE_FORMAT::R8G8B8A8_UNORM)
         {
@@ -155,14 +156,31 @@ export namespace ndq
             return Image();
         }
 
-        Microsoft::WRL::ComPtr<IWICFormatConverter> converter;
-        if (auto hr = pWIC->CreateFormatConverter(&converter); FAILED(hr))
-        {
-            return Image();
-        }
-
         if (auto format = GetImageFormat(pixelFormat); format == IMAGE_FORMAT::UNKNOWN)
         {
+            Microsoft::WRL::ComPtr<IWICFormatConverter> converter;
+            if (auto hr = pWIC->CreateFormatConverter(&converter); FAILED(hr))
+            {
+                return Image();
+            }
+
+            for (int32 i = 1; i < static_cast<int32>(IMAGE_FORMAT::NUM); ++i)
+            {
+                auto DestFormat = GetWICFormat(static_cast<IMAGE_FORMAT>(i));
+                BOOL CanConvert;
+                converter->CanConvert(pixelFormat, DestFormat, &CanConvert);
+                if (CanConvert)
+                {
+                    if (auto hr = converter->Initialize(frame.Get(), DestFormat, WICBitmapDitherTypeNone, nullptr, 0.f, WICBitmapPaletteTypeCustom); FAILED(hr))
+                    {
+                        return Image();
+                    }
+                    else
+                    {
+
+                    }
+                }
+            }
 
         }
         else
