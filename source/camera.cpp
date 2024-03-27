@@ -1,6 +1,6 @@
 module;
 
-#include "predef.h"
+#include <DirectXMath.h>
 
 export module ndq:camera;
 

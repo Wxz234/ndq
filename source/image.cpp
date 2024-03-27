@@ -2,6 +2,15 @@ module;
 
 #include "predef.h"
 
+#include <combaseapi.h>
+#include <intsafe.h>
+#include <wincodec.h>
+#include <wrl/client.h>
+
+#include <filesystem>
+#include <utility>
+#include <vector>
+
 export module ndq:image;
 
 import :platform;

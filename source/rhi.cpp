@@ -1,6 +1,39 @@
 module;
 
-#include "predef.h"
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <Windows.h>
+
+#include <combaseapi.h>
+#include <concurrent_vector.h>
+#include <d3d12.h>
+#include <d3d12sdklayers.h>
+#include <d3dcommon.h>
+#include <dxgi.h>
+#include <dxgi1_2.h>
+#include <dxgi1_3.h>
+#include <dxgi1_5.h>
+#include <dxgi1_6.h>
+#include <dxgiformat.h>
+#include <intsafe.h>
+#include <specstrings.h>
+#include <synchapi.h>
+#include <wrl/client.h>
+#include <wrl/wrappers/corewrappers.h>
+
+#include <algorithm>
+#include <atomic>
+#include <memory>
+#include <mutex>
+#include <vector>
+
+#define NDQ_NODEMASK 1
 
 export module ndq:rhi;
 

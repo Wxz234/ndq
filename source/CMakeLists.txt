@@ -8,7 +8,6 @@ add_library(ndq STATIC ${SHADER_FILE})
 target_sources(ndq PUBLIC FILE_SET HEADERS FILES
     "predef.h"
     "window.h"
-    "definitions.h"
 )
 target_sources(ndq PUBLIC FILE_SET CXX_MODULES FILES
     "ndq.ixx"
@@ -26,7 +25,6 @@ target_sources(ndq PUBLIC FILE_SET CXX_MODULES FILES
     "asset.cpp"
 )
 
-target_compile_options(ndq PUBLIC /wd4005 /wd5105 /wd26495)
 target_link_libraries(ndq PRIVATE WindowsApp.lib windowscodecs.lib)
 target_link_libraries(ndq PRIVATE imgui)
 set_target_properties(ndq PROPERTIES FOLDER "libraries")

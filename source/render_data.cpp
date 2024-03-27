@@ -1,7 +1,3 @@
-module;
-
-#include "predef.h"
-
 export module ndq:render_data;
 
 import :platform;

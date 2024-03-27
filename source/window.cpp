@@ -1,22 +1,17 @@
 module;
 
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
-#include <Windows.h>
+#include "predef.h"
 
 #include <libloaderapi.h>
+#include <minwindef.h>
 #include <profileapi.h>
+#include <windef.h>
+#include <winnt.h>
 #include <winrt/base.h>
+#include <WinUser.h>
 
 #include <string>
 
-#include "definitions.h"
 #include "window.h"
 
 export module ndq:window;

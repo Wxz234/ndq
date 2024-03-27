@@ -1,6 +1,11 @@
 module;
 
 #include "predef.h"
+
+#include <d3d12.h>
+#include <d3dcommon.h>
+#include <wrl/client.h>
+
 #include "imgui.h"
 #include "imgui_impl_dx12.h"
 #include "imgui_impl_win32.h"
@@ -10,7 +15,6 @@ export module ndq:renderer;
 import :gui;
 import :rhi;
 import :render_data;
-import :gltf;
 
 export namespace ndq
 {

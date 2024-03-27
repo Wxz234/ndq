@@ -2,6 +2,11 @@ module;
 
 #include "predef.h"
 
+#include <libloaderapi.h>
+#include <minwindef.h>
+
+#include <cstdint>
+
 export module ndq:platform;
 
 export namespace ndq

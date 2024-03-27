@@ -2,13 +2,13 @@ module;
 
 #include "predef.h"
 
+#include <DirectXMath.h>
+
 export module ndq:scene;
 
 import :platform;
-import :gltf;
 import :camera;
 import :render_data;
-import :asset;
 
 export namespace ndq
 {
@@ -80,8 +80,6 @@ namespace ndq
 
         DirectX::XMFLOAT4 DefaultSkyLight;
         Camera MainCamera;
-
-        //std::vector<GLTF> StaticModel;
 
         uint32 Width = NDQ_DEFAULT_WIDTH;
         uint32 Height = NDQ_DEFAULT_HEIGHT;
