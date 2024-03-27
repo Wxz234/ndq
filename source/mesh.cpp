@@ -8,8 +8,10 @@ import :platform;
 
 namespace ndq
 {
-    struct Mesh
+    class Mesh
     {
+    public:
+    private:
         std::vector<DirectX::XMFLOAT3> Positions;
         std::vector<DirectX::XMFLOAT3> Normals;
         std::vector<DirectX::XMFLOAT2> UV0;

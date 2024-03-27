@@ -43,7 +43,6 @@ namespace ndq
             Data.Width = &Width;
             Data.Height = &Height;
             Data.MainCamera = &MainCamera;
-            //Data.StaticModel = &StaticModel;
             Data.DefaultSkyLight = &DefaultSkyLight;
 
             MainCamera.SetView(DirectX::XMFLOAT3(.0f, .0f, .0f), DirectX::XMFLOAT3(.0f, .0f, 1.f), DirectX::XMFLOAT3(.0f, 1.f, .0f));
