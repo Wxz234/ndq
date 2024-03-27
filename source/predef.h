@@ -29,7 +29,6 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <exception>
 #include <filesystem>
 #include <memory>
 #include <mutex>

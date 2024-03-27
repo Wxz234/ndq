@@ -96,13 +96,6 @@ export namespace ndq
     public:
         IApplication(ApplicationDesc* pDesc)
         {
-            winrt::hresult const result = WINRT_IMPL_CoInitializeEx(nullptr, static_cast<uint32_t>(winrt::apartment_type::multi_threaded));
-
-            if (result < 0)
-            {
-                std::terminate();
-            }
-
             mWidth = pDesc->GetWidth();
             mHeight = pDesc->GetHeight();
             WNDCLASSEXW Wcex{};
@@ -169,6 +162,7 @@ export namespace ndq
 
         void PreInitialize()
         {
+            WINRT_IMPL_CoInitializeEx(nullptr, static_cast<uint32_t>(winrt::apartment_type::multi_threaded));
             Internal::CreateAllDll();
             Internal::InitializeRHI(mHwnd, mWidth, mHeight);
             Internal::InitializeGui(mHwnd);
@@ -186,8 +180,6 @@ export namespace ndq
             Internal::RemoveAllDll();
         }
 
-        void PostUpdate()
-        {
-        }
+        void PostUpdate() {}
     };
 }
