@@ -1,6 +1,22 @@
 module;
 
-#include "predef.h"
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <Windows.h>
+
+#include <libloaderapi.h>
+#include <profileapi.h>
+#include <winrt/base.h>
+
+#include <string>
+
+#include "definitions.h"
 #include "window.h"
 
 export module ndq:window;
@@ -159,7 +175,7 @@ export namespace ndq
 
         void PreInitialize()
         {
-            WINRT_IMPL_CoInitializeEx(nullptr, static_cast<uint32_t>(winrt::apartment_type::multi_threaded));
+            WINRT_IMPL_CoInitializeEx(nullptr, static_cast<uint32>(winrt::apartment_type::multi_threaded));
             Internal::CreateAllDll();
             Internal::InitializeRHI(mHwnd, mWidth, mHeight);
             Internal::InitializeGui(mHwnd);
