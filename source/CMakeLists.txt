@@ -8,6 +8,7 @@ add_library(ndq STATIC ${SHADER_FILE})
 target_sources(ndq PUBLIC FILE_SET HEADERS FILES
     "predef.h"
     "window.h"
+    "asset_proxy.h"
 )
 target_sources(ndq PUBLIC FILE_SET CXX_MODULES FILES
     "ndq.ixx"

@@ -1,6 +1,14 @@
+module;
+
+#include "asset_proxy.h"
+
 export module ndq:gltf;
 
-namespace ndq
+export namespace ndq
 {
+    AssetProxy LoadGLTF(const char* path)
+    {
 
+        return AssetProxy();
+    }
 }

@@ -1,6 +1,6 @@
 export module ndq:asset;
 
-namespace ndq
+export namespace ndq
 {
     enum class ASSET_TYPE
     {
@@ -25,10 +25,7 @@ namespace ndq
     public:
         virtual ~Asset() {}
     };
-}
 
-namespace ndq
-{
     IAsset* LoadStaticModel(const char* path)
     {
         return nullptr;
