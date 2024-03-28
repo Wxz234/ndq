@@ -13,10 +13,10 @@ using namespace Windows::Storage;
 
 export namespace ndq
 {
-    IAsyncAction ReadTextFileAsync(const char* path)
+    IAsyncAction ReadTextFileAsync(const wchar_t* path)
     {
         auto localFolder = ApplicationData::Current().LocalFolder();
-        StorageFile file = co_await localFolder.GetFileAsync(L"sample.txt");
+        StorageFile file = co_await localFolder.GetFileAsync(path);
         hstring text = co_await FileIO::ReadTextAsync(file);
         co_return;
     }

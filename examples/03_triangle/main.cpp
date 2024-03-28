@@ -12,7 +12,7 @@ struct App : public IApplication
     {
         pScene = CreateScene(SCENE_TYPE::DEFAULT);
         pRenderer = CreateRenderer(RENDERER_TYPE::DEFAULT);
-        LoadTextureFromFile("");
+        LoadTextureFromFile(L"");
     }
 
     void Finalize()
