@@ -7,7 +7,6 @@ module;
 #include <wincodec.h>
 #include <wrl/client.h>
 
-#include <filesystem>
 #include <utility>
 #include <vector>
 
@@ -136,7 +135,7 @@ export namespace ndq
         IMAGE_FORMAT mFormat;
     };
 
-    Image LoadTextureFromFile(const char* path)
+    Image LoadTextureFromFile(const wchar_t* path)
     {
         Microsoft::WRL::ComPtr<IWICImagingFactory2> pWIC;
         if (FAILED(CoCreateInstance(CLSID_WICImagingFactory2, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pWIC))))
@@ -144,9 +143,8 @@ export namespace ndq
             return Image();
         }
 
-        std::filesystem::path MyPath(path);
         Microsoft::WRL::ComPtr<IWICBitmapDecoder> decoder;
-        if (FAILED(pWIC->CreateDecoderFromFilename(MyPath.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &decoder)))
+        if (FAILED(pWIC->CreateDecoderFromFilename(path, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &decoder)))
         {
             return Image();
         }
