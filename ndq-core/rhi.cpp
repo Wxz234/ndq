@@ -682,7 +682,6 @@ namespace Internal
         HMODULE mD3D12{};
         HMODULE mDXGI{};
     };
-
 }
 
 namespace ndq

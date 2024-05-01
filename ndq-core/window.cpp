@@ -1,15 +1,6 @@
 #include "ndq/rhi.h"
 #include "ndq/window.h"
 
-#pragma once
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <Windows.h>
-
 #include "ndq_internal.h"
 
 namespace Internal
@@ -44,7 +35,6 @@ namespace Internal
 
 namespace ndq
 {
-
     int IApplication::Run()
     {
         WNDCLASSEXW Wcex{};
