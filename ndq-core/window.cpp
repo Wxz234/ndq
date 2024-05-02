@@ -56,7 +56,7 @@ namespace ndq
         ShowWindow(hwnd, SW_SHOWDEFAULT);
         UpdateWindow(hwnd);
 
-        auto TempPtr = dynamic_cast<Internal::GraphicsDeviceInterface*>(ndq::GetGraphicsDevice());
+        auto TempPtr = dynamic_cast<Internal::GraphicsDeviceInterface*>(ndq::GetGraphicsDevice().get());
         TempPtr->Initialize(hwnd, Width, Height);
 
         Initialize();

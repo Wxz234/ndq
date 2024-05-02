@@ -3,6 +3,7 @@
 
 #include <concurrent_vector.h>
 #include <d3d12.h>
+#include <d3dcommon.h>
 #include <dxgi1_6.h>
 #include <wrl/client.h>
 #include <wrl/wrappers/corewrappers.h>
@@ -55,7 +56,7 @@ namespace Internal
 
     D3D12_RESOURCE_STATES GetRawResourceState(ndq::RESOURCE_STATE state)
     {
-        D3D12_RESOURCE_STATES State;
+        D3D12_RESOURCE_STATES State = D3D12_RESOURCE_STATE_COMMON;
         switch (state)
         {
         case ndq::RESOURCE_STATE::COMMON:
@@ -73,7 +74,7 @@ namespace Internal
 
     D3D12_HEAP_TYPE GetRawHeapType(ndq::RESOURCE_HEAP_TYPE type)
     {
-        D3D12_HEAP_TYPE Type;
+        D3D12_HEAP_TYPE Type = D3D12_HEAP_TYPE_DEFAULT;
         switch (type)
         {
         case ndq::RESOURCE_HEAP_TYPE::DEFAULT:
@@ -88,6 +89,32 @@ namespace Internal
         }
         return Type;
     }
+
+    class Shader : public ndq::IShader
+    {
+    public:
+        Shader(ndq::SHADER_TYPE type, Microsoft::WRL::ComPtr<ID3DBlob> pBlob)
+            : mType(type), mBlob(pBlob) {}
+
+        ndq::SHADER_TYPE GetShaderType() const
+        {
+            return mType;
+        }
+
+        void* GetBlobPointer() const
+        {
+            return mBlob->GetBufferPointer();
+        }
+
+        ndq::size_type GetBlobSize() const
+        {
+            return mBlob->GetBufferSize();
+        }
+        
+    private:
+        ndq::SHADER_TYPE mType;
+        Microsoft::WRL::ComPtr<ID3DBlob> mBlob;
+    };
 
     class GraphicsBuffer : public ndq::IGraphicsBuffer
     {
@@ -442,7 +469,7 @@ namespace Internal
             return Queue;
         }
 
-        ndq::ICommandList* GetCommandList(ndq::COMMAND_LIST_TYPE type)
+        std::shared_ptr<ndq::ICommandList> GetCommandList(ndq::COMMAND_LIST_TYPE type)
         {
             ndq::uint64 CurrentValue;
             ndq::size_type ListCount;
@@ -458,7 +485,7 @@ namespace Internal
                     {
                         if (mGraphicsLists[i]->mValue <= CurrentValue)
                         {
-                            return mGraphicsLists[i].get();
+                            return mGraphicsLists[i];
                         }
                         mGraphicsLists[i]->bIsBusy.store(false);
                     }
@@ -473,7 +500,7 @@ namespace Internal
                     {
                         if (mCopyLists[i]->mValue <= CurrentValue)
                         {
-                            return mCopyLists[i].get();
+                            return mCopyLists[i];
                         }
                         mCopyLists[i]->bIsBusy.store(false);
                     }
@@ -488,7 +515,7 @@ namespace Internal
                     {
                         if (mComputeLists[i]->mValue <= CurrentValue)
                         {
-                            return mComputeLists[i].get();
+                            return mComputeLists[i];
                         }
                         mComputeLists[i]->bIsBusy.store(false);
                     }
@@ -497,7 +524,7 @@ namespace Internal
             }
 
             auto TempPtr = CreateList(type);
-            return TempPtr.get();
+            return TempPtr;
         }
 
         std::shared_ptr<ndq::ICommandList> CreateList(ndq::COMMAND_LIST_TYPE type)
@@ -530,7 +557,7 @@ namespace Internal
             return TempPtr;
         }
 
-        ndq::IGraphicsBuffer* AllocateBuffer(const ndq::GRAPHICS_BUFFER_DESC* pDesc)
+        std::shared_ptr<ndq::IGraphicsBuffer> AllocateBuffer(const ndq::GRAPHICS_BUFFER_DESC* pDesc)
         {
             D3D12_RESOURCE_DESC BufferResDesc{};
             BufferResDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -555,11 +582,13 @@ namespace Internal
             mDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(pDesc->State), nullptr, IID_PPV_ARGS(&pResource));
 
             auto* RawPtr = new GraphicsBuffer(pResource);
-            std::shared_ptr<ndq::IGraphicsResource> TempPtr(RawPtr);
+            std::shared_ptr<ndq::IGraphicsBuffer> retVal(RawPtr);
+            std::shared_ptr<ndq::IGraphicsResource> TempPtr = retVal;
             mGPURes.push_back(TempPtr);
-            return RawPtr;
+            return retVal;
         }
-        ndq::IGraphicsTexture2D* AllocateTexture2D(const ndq::GRAPHICS_TEXTURE_DESC* pDesc)
+
+        std::shared_ptr<ndq::IGraphicsTexture2D> AllocateTexture2D(const ndq::GRAPHICS_TEXTURE_DESC* pDesc)
         {
             D3D12_RESOURCE_DESC TextureResDesc{};
             TextureResDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -584,26 +613,32 @@ namespace Internal
             mDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &TextureResDesc, GetRawResourceState(pDesc->State), nullptr, IID_PPV_ARGS(&pResource));
 
             auto* RawPtr = new GraphicsTexture2D(pResource, pDesc->Width, pDesc->Height, pDesc->Format);
-            std::shared_ptr<ndq::IGraphicsResource> TempPtr(RawPtr);
+            std::shared_ptr<ndq::IGraphicsTexture2D> retVal(RawPtr);
+            std::shared_ptr<ndq::IGraphicsResource> TempPtr = retVal;
             mGPURes.push_back(TempPtr);
-            return RawPtr;
-        }
-
-        void CollectResource(ndq::IGraphicsResource* pResource)
-        {
-            ndq::size_type count = mGPURes.size();
-            for (ndq::size_type i = 0; i < count; ++i)
-            {
-                if (pResource == mGPURes[i].get())
-                {
-                    mGPURes[i].reset();
-                }
-            }
-            ++mNeedReleaseGPUResCount;
+            return retVal;
         }
 
         void RunGarbageCollection()
         {
+            static ndq::uint32 flushTime = 0;
+            ++flushTime;
+
+            if(flushTime >= 500)
+            {
+                ndq::size_type count = mGPURes.size();
+                for (ndq::size_type i = 0; i < count; ++i)
+                {
+                    if (mGPURes[i].use_count() == 1)
+                    {
+                        mGPURes[i].reset();
+                    }
+                }
+                ++mNeedReleaseGPUResCount;
+
+                flushTime = 0;
+            }
+
             if (mNeedReleaseGPUResCount >= 3000)
             {
                 concurrency::concurrent_vector<std::shared_ptr<ndq::IGraphicsResource>> TempGPURes;
@@ -686,9 +721,9 @@ namespace Internal
 
 namespace ndq
 {
-    IGraphicsDevice* GetGraphicsDevice()
+    std::shared_ptr<IGraphicsDevice> GetGraphicsDevice()
     {
         static std::shared_ptr<IGraphicsDevice> Device(new Internal::GraphicsDevice);
-        return Device.get();
+        return Device;
     }
 }

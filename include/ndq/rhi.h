@@ -2,6 +2,8 @@
 
 #include "ndq/platform.h"
 
+#include <memory>
+
 namespace ndq
 {
     enum class RESOURCE_STATE
@@ -60,6 +62,22 @@ namespace ndq
         TRIANGLELIST = 4,
     };
 
+    enum class SHADER_TYPE
+    {
+        VERTEX,
+        PIXEL,
+    };
+
+    class IShader
+    {
+    public:
+        virtual SHADER_TYPE GetShaderType() const = 0;
+        virtual void* GetBlobPointer() const = 0;
+        virtual size_type GetBlobSize() const = 0;
+    };
+
+    std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, const wchar_t* entryPoint, SHADER_TYPE shaderType);
+
     class IGraphicsResource
     {
     public:
@@ -95,11 +113,10 @@ namespace ndq
     public:
         virtual void ExecuteCommandList(ICommandList* pList) = 0;
         virtual void Wait(COMMAND_LIST_TYPE type) = 0;
-        virtual ICommandList* GetCommandList(COMMAND_LIST_TYPE type) = 0;
-        virtual IGraphicsBuffer* AllocateBuffer(const GRAPHICS_BUFFER_DESC* pDesc) = 0;
-        virtual IGraphicsTexture2D* AllocateTexture2D(const GRAPHICS_TEXTURE_DESC* pDesc) = 0;
-        virtual void CollectResource(IGraphicsResource* pResource) = 0;
+        virtual std::shared_ptr<ICommandList> GetCommandList(COMMAND_LIST_TYPE type) = 0;
+        virtual std::shared_ptr<IGraphicsBuffer> AllocateBuffer(const GRAPHICS_BUFFER_DESC* pDesc) = 0;
+        virtual std::shared_ptr<IGraphicsTexture2D> AllocateTexture2D(const GRAPHICS_TEXTURE_DESC* pDesc) = 0;
     };
 
-    IGraphicsDevice* GetGraphicsDevice();
+    std::shared_ptr<IGraphicsDevice> GetGraphicsDevice();
 }
