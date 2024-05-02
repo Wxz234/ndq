@@ -349,12 +349,12 @@ namespace Internal
             MoveToNextFrame();
         }
 
-        void ExecuteCommandList(ndq::ICommandList* pList)
+        void ExecuteCommandList(std::shared_ptr<ndq::ICommandList> pList)
         {
             auto Type = pList->GetType();
-            auto tempList = dynamic_cast<CommandList*>(pList);
+            auto tempList = dynamic_cast<CommandList*>(pList.get());
             ID3D12CommandList* Lists[1] = { reinterpret_cast<ID3D12CommandList*> (tempList->GetRawList()) };
-            CommandList* pRealList = dynamic_cast<CommandList*>(pList);
+            CommandList* pRealList = dynamic_cast<CommandList*>(pList.get());
             switch (Type)
             {
             case ndq::COMMAND_LIST_TYPE::GRAPHICS:

@@ -111,7 +111,7 @@ namespace ndq
     class IGraphicsDevice
     {
     public:
-        virtual void ExecuteCommandList(ICommandList* pList) = 0;
+        virtual void ExecuteCommandList(std::shared_ptr<ICommandList> pList) = 0;
         virtual void Wait(COMMAND_LIST_TYPE type) = 0;
         virtual std::shared_ptr<ICommandList> GetCommandList(COMMAND_LIST_TYPE type) = 0;
         virtual std::shared_ptr<IGraphicsBuffer> AllocateBuffer(const GRAPHICS_BUFFER_DESC* pDesc) = 0;
