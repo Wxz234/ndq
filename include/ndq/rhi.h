@@ -68,6 +68,11 @@ namespace ndq
         PIXEL,
     };
 
+    struct SHADER_DEFINE {
+        const wchar_t* Name;
+        const wchar_t* Value;
+    };
+
     class IShader
     {
     public:
@@ -76,7 +81,7 @@ namespace ndq
         virtual size_type GetBlobSize() const = 0;
     };
 
-    std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, const wchar_t* entryPoint, SHADER_TYPE shaderType);
+    std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, const SHADER_DEFINE* pDefines, uint32 defineCount, const wchar_t* entryPoint, ndq::SHADER_TYPE shaderType);
 
     class IGraphicsResource
     {

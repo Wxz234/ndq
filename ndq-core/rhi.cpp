@@ -4,12 +4,14 @@
 #include <concurrent_vector.h>
 #include <d3d12.h>
 #include <d3dcommon.h>
+#include <dxcapi.h>
 #include <dxgi1_6.h>
 #include <wrl/client.h>
 #include <wrl/wrappers/corewrappers.h>
 
 #include <atomic>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "ndq_internal.h"
@@ -20,6 +22,8 @@
 #define NDQ_SWAPCHAIN_COUNT 3
 
 typedef HRESULT(WINAPI* PfnCreateFactory2)(UINT Flags, REFIID riid, _COM_Outptr_ void** ppFactory);
+
+#pragma comment(lib,"dxcompiler.lib")
 
 namespace Internal
 {
@@ -93,7 +97,7 @@ namespace Internal
     class Shader : public ndq::IShader
     {
     public:
-        Shader(ndq::SHADER_TYPE type, Microsoft::WRL::ComPtr<ID3DBlob> pBlob)
+        Shader(ndq::SHADER_TYPE type, Microsoft::WRL::ComPtr<IDxcBlob> pBlob)
             : mType(type), mBlob(pBlob) {}
 
         ndq::SHADER_TYPE GetShaderType() const
@@ -113,8 +117,80 @@ namespace Internal
         
     private:
         ndq::SHADER_TYPE mType;
-        Microsoft::WRL::ComPtr<ID3DBlob> mBlob;
+        Microsoft::WRL::ComPtr<IDxcBlob> mBlob;
     };
+
+    std::wstring GetShaderTypeString(ndq::SHADER_TYPE shaderType)
+    {
+        std::wstring Temp;
+        switch (shaderType)
+        {
+        case ndq::SHADER_TYPE::VERTEX:
+            Temp = L"vs_6_6";
+            break;
+        case ndq::SHADER_TYPE::PIXEL:
+            Temp = L"ps_6_6";
+            break;
+        }
+        return Temp;
+    }
+
+    std::shared_ptr<ndq::IShader> CompileShaderFromFile(const wchar_t* filePath, const ndq::SHADER_DEFINE* pDefines, ndq::uint32 defineCount, const wchar_t* entryPoint, ndq::SHADER_TYPE shaderType)
+    {
+        Microsoft::WRL::ComPtr<IDxcUtils> pUtils;
+        Microsoft::WRL::ComPtr<IDxcCompiler3> pCompiler;
+        DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils));
+        DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler));
+
+        Microsoft::WRL::ComPtr<IDxcIncludeHandler> pIncludeHandler;
+        pUtils->CreateDefaultIncludeHandler(&pIncludeHandler);
+
+        Microsoft::WRL::ComPtr<IDxcBlobEncoding> pSource = nullptr;
+        pUtils->LoadFile(filePath, nullptr, &pSource);
+
+        DxcBuffer Source;
+        Source.Ptr = pSource->GetBufferPointer();
+        Source.Size = pSource->GetBufferSize();
+        Source.Encoding = DXC_CP_ACP;
+
+        auto ShaderTypeString = GetShaderTypeString(shaderType);
+
+        std::vector<LPCWSTR> pszArgs;
+        pszArgs.push_back(filePath);
+        pszArgs.push_back(L"-E");
+        pszArgs.push_back(entryPoint);
+        pszArgs.push_back(L"-T");
+        pszArgs.push_back(ShaderTypeString.c_str());
+        if (defineCount != 0)
+        {
+            pszArgs.push_back(L"-D");
+        }
+        std::vector<std::wstring> TempDefineStringArgs;
+        for (ndq::uint32 i = 0;i < defineCount; ++i)
+        {
+            TempDefineStringArgs.push_back(std::wstring(L""));
+            TempDefineStringArgs[i] += pDefines[i].Name;
+            TempDefineStringArgs[i] += L"=";
+            TempDefineStringArgs[i] += pDefines[i].Value;
+            pszArgs.push_back(TempDefineStringArgs[i].c_str());
+        }
+
+        Microsoft::WRL::ComPtr<IDxcResult> pResults;
+        pCompiler->Compile
+        (
+            &Source,
+            pszArgs.data(),
+            pszArgs.size(),
+            pIncludeHandler.Get(),
+            IID_PPV_ARGS(&pResults)
+        );
+
+        Microsoft::WRL::ComPtr<IDxcBlob> pShader;
+        Microsoft::WRL::ComPtr<IDxcBlobUtf16> pShaderName;
+        pResults->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pShader), &pShaderName);
+
+        return std::shared_ptr<ndq::IShader>(new Shader(shaderType, pShader));
+    }
 
     class GraphicsBuffer : public ndq::IGraphicsBuffer
     {
