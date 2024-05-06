@@ -23,8 +23,6 @@
 
 typedef HRESULT(WINAPI* PfnCreateFactory2)(UINT Flags, REFIID riid, _COM_Outptr_ void** ppFactory);
 
-#pragma comment(lib,"dxcompiler.lib")
-
 namespace Internal
 {
     DXGI_FORMAT GetRawResourceFormat(ndq::RESOURCE_FORMAT format)
@@ -137,10 +135,13 @@ namespace Internal
 
     std::shared_ptr<ndq::IShader> CompileShaderFromFile(const wchar_t* filePath, const ndq::SHADER_DEFINE* pDefines, ndq::uint32 defineCount, const wchar_t* entryPoint, ndq::SHADER_TYPE shaderType)
     {
+        static HMODULE DXCLIB = LoadLibraryW(L"dxcompiler.dll");
+        auto _DxcCreateInstance = (DxcCreateInstanceProc)GetProcAddress(DXCLIB, "DxcCreateInstance");
+
         Microsoft::WRL::ComPtr<IDxcUtils> pUtils;
         Microsoft::WRL::ComPtr<IDxcCompiler3> pCompiler;
-        DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils));
-        DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler));
+        _DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils));
+        _DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler));
 
         Microsoft::WRL::ComPtr<IDxcIncludeHandler> pIncludeHandler;
         pUtils->CreateDefaultIncludeHandler(&pIncludeHandler);
