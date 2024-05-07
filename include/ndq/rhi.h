@@ -32,6 +32,28 @@ namespace ndq
         ALLOW_RENDER_TARGET = 0x1,
     };
 
+    enum class COMMAND_LIST_TYPE
+    {
+        GRAPHICS,
+        COPY,
+        COMPUTE,
+    };
+
+    enum class PRIMITIVE_TOPOLOGY
+    {
+        UNDEFINED = 0,
+        POINTLIST = 1,
+        LINELIST = 2,
+        LINESTRIP = 3,
+        TRIANGLELIST = 4,
+    };
+
+    enum class SHADER_TYPE
+    {
+        VERTEX,
+        PIXEL,
+    };
+
     struct GRAPHICS_BUFFER_DESC
     {
         RESOURCE_STATE State;
@@ -50,24 +72,6 @@ namespace ndq
         uint16 MipLevels;
     };
 
-    enum class COMMAND_LIST_TYPE
-    {
-        GRAPHICS,
-        COPY,
-        COMPUTE,
-    };
-
-    enum class PRIMITIVE_TOPOLOGY
-    {
-        TRIANGLELIST = 4,
-    };
-
-    enum class SHADER_TYPE
-    {
-        VERTEX,
-        PIXEL,
-    };
-
     struct SHADER_DEFINE {
         const wchar_t* Name;
         const wchar_t* Value;
@@ -81,7 +85,7 @@ namespace ndq
         virtual size_type GetBlobSize() const = 0;
     };
 
-    std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, const SHADER_DEFINE* pDefines, uint32 defineCount, const wchar_t* entryPoint, ndq::SHADER_TYPE shaderType);
+    std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, const SHADER_DEFINE* pDefines, uint32 defineCount, const wchar_t* entryPoint, SHADER_TYPE shaderType);
 
     class IGraphicsResource
     {

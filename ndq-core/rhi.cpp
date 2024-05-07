@@ -4,6 +4,7 @@
 #include <concurrent_vector.h>
 #include <d3d12.h>
 #include <d3dcommon.h>
+#include <d3dx12.h>
 #include <dxcapi.h>
 #include <dxgi1_6.h>
 #include <wrl/client.h>
@@ -92,6 +93,30 @@ namespace Internal
         return Type;
     }
 
+    D3D12_PRIMITIVE_TOPOLOGY_TYPE GetPrimitiveTopologyType(ndq::PRIMITIVE_TOPOLOGY topology)
+    {
+        D3D12_PRIMITIVE_TOPOLOGY_TYPE Type = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+        switch (topology)
+        {
+        case ndq::PRIMITIVE_TOPOLOGY::UNDEFINED:
+            Type = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+            break;
+        case ndq::PRIMITIVE_TOPOLOGY::POINTLIST:
+            Type = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+            break;
+        case ndq::PRIMITIVE_TOPOLOGY::LINELIST:
+            Type = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+            break;
+        case ndq::PRIMITIVE_TOPOLOGY::LINESTRIP:
+            Type = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+            break;
+        case ndq::PRIMITIVE_TOPOLOGY::TRIANGLELIST:
+            Type = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+            break;
+        }
+        return Type;
+    }
+
     class Shader : public ndq::IShader
     {
     public:
@@ -159,12 +184,7 @@ namespace Internal
     class GraphicsTexture2D : public ndq::IGraphicsTexture2D
     {
     public:
-        GraphicsTexture2D(
-            Microsoft::WRL::ComPtr<ID3D12Resource> pResource,
-            ndq::uint32 width,
-            ndq::uint32 height,
-            ndq::RESOURCE_FORMAT format
-        ) : mResource(pResource), mWidth(width), mHeight(height), mFormat(format) {}
+        GraphicsTexture2D(Microsoft::WRL::ComPtr<ID3D12Resource> pResource, ndq::uint32 width, ndq::uint32 height, ndq::RESOURCE_FORMAT format) : mResource(pResource), mWidth(width), mHeight(height), mFormat(format) {}
 
         void* GetRawResource() const { return mResource.Get(); }
         ndq::uint32 GetWidth() const { return mWidth; }
@@ -187,6 +207,7 @@ namespace Internal
             mType = type;
             mAllocator = pAllocator;
             mList = pList;
+            _InitPSO();
         }
 
         void Open()
@@ -215,11 +236,43 @@ namespace Internal
             return mList.Get();
         }
 
+        void _InitPSO()
+        {
+            mCacheGraphicsPSO = {};
+            mCacheGraphicsPSO.pRootSignature = nullptr;
+            mCacheGraphicsPSO.VS = {};
+            mCacheGraphicsPSO.PS = {};
+            mCacheGraphicsPSO.DS = {};
+            mCacheGraphicsPSO.HS = {};
+            mCacheGraphicsPSO.GS = {};
+            mCacheGraphicsPSO.StreamOutput = {};
+            mCacheGraphicsPSO.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+            mCacheGraphicsPSO.SampleMask = UINT_MAX;
+            mCacheGraphicsPSO.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+            mCacheGraphicsPSO.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+            mCacheGraphicsPSO.InputLayout = { nullptr, 0 };
+            mCacheGraphicsPSO.IBStripCutValue = {};
+            mCacheGraphicsPSO.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+            mCacheGraphicsPSO.NumRenderTargets = 0;
+            for (UINT i = 0;i < 8; ++i)
+            {
+                mCacheGraphicsPSO.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
+            }
+            mCacheGraphicsPSO.DSVFormat = DXGI_FORMAT_UNKNOWN;
+            mCacheGraphicsPSO.SampleDesc.Count = 1;
+            mCacheGraphicsPSO.SampleDesc.Quality = 0;
+            mCacheGraphicsPSO.NodeMask = NDQ_NODE_MASK;
+            mCacheGraphicsPSO.CachedPSO = {};
+            mCacheGraphicsPSO.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+        }
+
         std::atomic_bool bIsBusy;
         ndq::uint64 mValue;
         ndq::COMMAND_LIST_TYPE mType;
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mAllocator;
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mList;
+
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC mCacheGraphicsPSO;
     };
 
 
