@@ -113,6 +113,8 @@ namespace ndq
     public:
         virtual void Open() = 0;
         virtual void SetPrimitiveTopology(PRIMITIVE_TOPOLOGY topology) = 0;
+        virtual void SetVertexShader(IShader* pShader) = 0;
+        virtual void SetPixelShader(IShader* pShader) = 0;
         virtual void Close() = 0;
         virtual COMMAND_LIST_TYPE GetType() const = 0;
     };
@@ -120,7 +122,7 @@ namespace ndq
     class IGraphicsDevice
     {
     public:
-        virtual void ExecuteCommandList(std::shared_ptr<ICommandList> pList) = 0;
+        virtual void ExecuteCommandList(ICommandList* pList) = 0;
         virtual void Wait(COMMAND_LIST_TYPE type) = 0;
         virtual std::shared_ptr<ICommandList> GetCommandList(COMMAND_LIST_TYPE type) = 0;
         virtual std::shared_ptr<IGraphicsBuffer> AllocateBuffer(const GRAPHICS_BUFFER_DESC* pDesc) = 0;

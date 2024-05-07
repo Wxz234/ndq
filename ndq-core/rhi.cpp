@@ -138,7 +138,6 @@ namespace Internal
             return mBlob->GetBufferSize();
         }
         
-    private:
         ndq::SHADER_TYPE mType;
         Microsoft::WRL::ComPtr<IDxcBlob> mBlob;
     };
@@ -207,6 +206,7 @@ namespace Internal
             mType = type;
             mAllocator = pAllocator;
             mList = pList;
+            bPSODirty = false;
             _InitPSO();
         }
 
@@ -218,7 +218,32 @@ namespace Internal
 
         void SetPrimitiveTopology(ndq::PRIMITIVE_TOPOLOGY topology)
         {
+            if (auto Temp = GetPrimitiveTopologyType(topology); Temp != mCacheGraphicsPSO.PrimitiveTopologyType)
+            {
+                mCacheGraphicsPSO.PrimitiveTopologyType = Temp;
+                bPSODirty = true;
+            }
             mList->IASetPrimitiveTopology(static_cast<D3D12_PRIMITIVE_TOPOLOGY>(topology));
+        }
+
+        void SetVertexShader(ndq::IShader* pShader)
+        {
+            if (auto TempShader = dynamic_cast<Shader*>(pShader); mVertexBlob != TempShader->mBlob)
+            {
+                mVertexBlob = TempShader->mBlob;
+                mCacheGraphicsPSO.VS = CD3DX12_SHADER_BYTECODE(mVertexBlob->GetBufferPointer(), mVertexBlob->GetBufferSize());
+                bPSODirty = true;
+            }
+        }
+
+        void SetPixelShader(ndq::IShader* pShader)
+        {
+            if (auto TempShader = dynamic_cast<Shader*>(pShader); mPixelBlob != TempShader->mBlob)
+            {
+                mPixelBlob = TempShader->mBlob;
+                mCacheGraphicsPSO.PS = CD3DX12_SHADER_BYTECODE(mPixelBlob->GetBufferPointer(), mPixelBlob->GetBufferSize());
+                bPSODirty = true;
+            }
         }
 
         void Close()
@@ -273,6 +298,11 @@ namespace Internal
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mList;
 
         D3D12_GRAPHICS_PIPELINE_STATE_DESC mCacheGraphicsPSO;
+
+        Microsoft::WRL::ComPtr<IDxcBlob> mVertexBlob;
+        Microsoft::WRL::ComPtr<IDxcBlob> mPixelBlob;
+
+        bool bPSODirty;
     };
 
 
@@ -419,29 +449,28 @@ namespace Internal
             MoveToNextFrame();
         }
 
-        void ExecuteCommandList(std::shared_ptr<ndq::ICommandList> pList)
+        void ExecuteCommandList(ndq::ICommandList* pList)
         {
             auto Type = pList->GetType();
-            auto tempList = dynamic_cast<CommandList*>(pList.get());
-            ID3D12CommandList* Lists[1] = { reinterpret_cast<ID3D12CommandList*> (tempList->GetRawList()) };
-            CommandList* pRealList = dynamic_cast<CommandList*>(pList.get());
+            auto TempList = dynamic_cast<CommandList*>(pList);
+            ID3D12CommandList* Lists[1] = { reinterpret_cast<ID3D12CommandList*> (TempList->GetRawList()) };
             switch (Type)
             {
             case ndq::COMMAND_LIST_TYPE::GRAPHICS:
-                pRealList->mValue = mGraphicsFenceValue.fetch_add(1);
+                TempList->mValue = mGraphicsFenceValue.fetch_add(1);
                 mGraphicsQueue->ExecuteCommandLists(1, Lists);
                 break;
             case ndq::COMMAND_LIST_TYPE::COPY:
-                pRealList->mValue = mCopyFenceValue.fetch_add(1);
+                TempList->mValue = mCopyFenceValue.fetch_add(1);
                 mCopyQueue->ExecuteCommandLists(1, Lists);
                 break;
             case ndq::COMMAND_LIST_TYPE::COMPUTE:
-                pRealList->mValue = mComputeFenceValue.fetch_add(1);
+                TempList->mValue = mComputeFenceValue.fetch_add(1);
                 mComputeQueue->ExecuteCommandLists(1, Lists);
                 break;
             }
 
-            pRealList->bIsBusy.store(false);
+            TempList->bIsBusy.store(false);
         }
 
         void* GetRawDevice() const
