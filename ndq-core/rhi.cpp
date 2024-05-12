@@ -212,6 +212,11 @@ namespace Internal
 
         void Open()
         {
+            if (!_CanUse())
+            {
+                ndq::GetGraphicsDevice()->Wait(mType);
+            }
+
             mAllocator->Reset();
             mList->Reset(mAllocator.Get(), nullptr);
         }
@@ -289,6 +294,13 @@ namespace Internal
             mCacheGraphicsPSO.NodeMask = NDQ_NODE_MASK;
             mCacheGraphicsPSO.CachedPSO = {};
             mCacheGraphicsPSO.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+        }
+
+        bool _CanUse()
+        {
+            auto TempPtr = dynamic_cast<GraphicsDeviceInterface*>(ndq::GetGraphicsDevice().get());
+            auto CompletedFenceValue = TempPtr->GetCompletedFenceValue(mType);
+            return CompletedFenceValue >= mValue;
         }
 
         std::atomic_bool bIsBusy;
@@ -447,6 +459,24 @@ namespace Internal
             mSwapChain->Present(1, 0);
             QueueSignal();
             MoveToNextFrame();
+        }
+
+        ndq::uint64 GetCompletedFenceValue(ndq::COMMAND_LIST_TYPE type) const
+        {
+            ndq::uint64 Val = 0;
+            switch (type)
+            {
+            case ndq::COMMAND_LIST_TYPE::GRAPHICS:
+                Val = mGraphicsFence->GetCompletedValue();
+                break;
+            case ndq::COMMAND_LIST_TYPE::COPY:
+                Val = mCopyFence->GetCompletedValue();
+                break;
+            case ndq::COMMAND_LIST_TYPE::COMPUTE:
+                Val = mComputeFence->GetCompletedValue();
+                break;
+            }
+            return Val;
         }
 
         void ExecuteCommandList(ndq::ICommandList* pList)
