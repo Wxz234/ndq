@@ -12,8 +12,8 @@ struct App : public ndq::IApplication
 
     void Initialize()
     {
-        auto VertexShaderBlob = ndq::CompileShaderFromFile(L"vertex.hlsl", nullptr, 0, L"main", ndq::NDQ_SHADER_TYPE::VERTEX);
-        auto PixelShaderBlob = ndq::CompileShaderFromFile(L"pixel.hlsl", nullptr, 0, L"main", ndq::NDQ_SHADER_TYPE::PIXEL);
+        auto VertexShaderBlob = ndq::CompileShaderFromFile(L"vertex.hlsl", ndq::NDQ_SHADER_TYPE::VERTEX, L"main", nullptr, 0);
+        auto PixelShaderBlob = ndq::CompileShaderFromFile(L"pixel.hlsl", ndq::NDQ_SHADER_TYPE::PIXEL, L"main", nullptr, 0);
         pGraphicsDevice = ndq::GetGraphicsDevice();
         pCmdList = pGraphicsDevice->GetCommandList(ndq::NDQ_COMMAND_LIST_TYPE::GRAPHICS);
         pCmdList->SetVertexShader(VertexShaderBlob.get());

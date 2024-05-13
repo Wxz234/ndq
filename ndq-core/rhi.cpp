@@ -856,7 +856,7 @@ namespace ndq
         return Device;
     }
 
-    std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, const NDQ_SHADER_DEFINE* pDefines, uint32 defineCount, const wchar_t* entryPoint, NDQ_SHADER_TYPE shaderType)
+    std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, NDQ_SHADER_TYPE shaderType, const wchar_t* entryPoint, const NDQ_SHADER_DEFINE* pDefines, uint32 defineCount)
     {
         static HMODULE DXCLIB = LoadLibraryW(L"dxcompiler.dll");
         auto _DxcCreateInstance = (DxcCreateInstanceProc)GetProcAddress(DXCLIB, "DxcCreateInstance");

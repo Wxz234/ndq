@@ -116,8 +116,6 @@ namespace ndq
         virtual size_type GetBlobSize() const = 0;
     };
 
-    std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, const NDQ_SHADER_DEFINE* pDefines, uint32 defineCount, const wchar_t* entryPoint, NDQ_SHADER_TYPE shaderType);
-
     class IGraphicsResource
     {
     public:
@@ -161,4 +159,5 @@ namespace ndq
     };
 
     std::shared_ptr<IGraphicsDevice> GetGraphicsDevice();
+    std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, NDQ_SHADER_TYPE shaderType, const wchar_t* entryPoint, const NDQ_SHADER_DEFINE* pDefines, uint32 defineCount);
 }
