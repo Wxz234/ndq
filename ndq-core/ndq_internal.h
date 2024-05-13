@@ -19,6 +19,6 @@ namespace Internal
         virtual void Initialize(HWND hwnd, UINT width, UINT height) = 0;
         virtual void Release() = 0;
         virtual void RunGarbageCollection() = 0;
-        virtual ndq::uint64 GetCompletedFenceValue(ndq::COMMAND_LIST_TYPE type) const = 0;
+        virtual ndq::uint64 GetCompletedFenceValue(ndq::NDQ_COMMAND_LIST_TYPE type) const = 0;
     };
 }

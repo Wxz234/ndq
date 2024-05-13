@@ -26,12 +26,12 @@ typedef HRESULT(WINAPI* PfnCreateFactory2)(UINT Flags, REFIID riid, _COM_Outptr_
 
 namespace Internal
 {
-    DXGI_FORMAT GetRawResourceFormat(ndq::RESOURCE_FORMAT format)
+    DXGI_FORMAT GetRawResourceFormat(ndq::NDQ_RESOURCE_FORMAT format)
     {
         DXGI_FORMAT RawFormat;
         switch (format)
         {
-        case ndq::RESOURCE_FORMAT::R8G8B8A8_UNORM:
+        case ndq::NDQ_RESOURCE_FORMAT::R8G8B8A8_UNORM:
             RawFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
             break;
         default:
@@ -42,75 +42,75 @@ namespace Internal
         return RawFormat;
     }
 
-    ndq::RESOURCE_FORMAT GetResourceFormat(DXGI_FORMAT format)
+    ndq::NDQ_RESOURCE_FORMAT GetResourceFormat(DXGI_FORMAT format)
     {
-        ndq::RESOURCE_FORMAT Format;
+        ndq::NDQ_RESOURCE_FORMAT Format;
         switch (format)
         {
         case DXGI_FORMAT_R8G8B8A8_UNORM:
-            Format = ndq::RESOURCE_FORMAT::R8G8B8A8_UNORM;
+            Format = ndq::NDQ_RESOURCE_FORMAT::R8G8B8A8_UNORM;
             break;
         default:
-            Format = ndq::RESOURCE_FORMAT::UNKNOWN;
+            Format = ndq::NDQ_RESOURCE_FORMAT::UNKNOWN;
             break;
         }
         return Format;
     }
 
-    D3D12_RESOURCE_STATES GetRawResourceState(ndq::RESOURCE_STATE state)
+    D3D12_RESOURCE_STATES GetRawResourceState(ndq::NDQ_RESOURCE_STATE state)
     {
         D3D12_RESOURCE_STATES State = D3D12_RESOURCE_STATE_COMMON;
         switch (state)
         {
-        case ndq::RESOURCE_STATE::COMMON:
+        case ndq::NDQ_RESOURCE_STATE::COMMON:
             State = D3D12_RESOURCE_STATE_COMMON;
             break;
-        case ndq::RESOURCE_STATE::RENDER_TARGET:
+        case ndq::NDQ_RESOURCE_STATE::RENDER_TARGET:
             State = D3D12_RESOURCE_STATE_RENDER_TARGET;
             break;
-        case ndq::RESOURCE_STATE::READ:
+        case ndq::NDQ_RESOURCE_STATE::READ:
             State = D3D12_RESOURCE_STATE_GENERIC_READ;
             break;
         }
         return State;
     }
 
-    D3D12_HEAP_TYPE GetRawHeapType(ndq::RESOURCE_HEAP_TYPE type)
+    D3D12_HEAP_TYPE GetRawHeapType(ndq::NDQ_RESOURCE_HEAP_TYPE type)
     {
         D3D12_HEAP_TYPE Type = D3D12_HEAP_TYPE_DEFAULT;
         switch (type)
         {
-        case ndq::RESOURCE_HEAP_TYPE::DEFAULT:
+        case ndq::NDQ_RESOURCE_HEAP_TYPE::DEFAULT:
             Type = D3D12_HEAP_TYPE_DEFAULT;
             break;
-        case ndq::RESOURCE_HEAP_TYPE::UPLOAD:
+        case ndq::NDQ_RESOURCE_HEAP_TYPE::UPLOAD:
             Type = D3D12_HEAP_TYPE_UPLOAD;
             break;
-        case ndq::RESOURCE_HEAP_TYPE::READBACK:
+        case ndq::NDQ_RESOURCE_HEAP_TYPE::READBACK:
             Type = D3D12_HEAP_TYPE_READBACK;
             break;
         }
         return Type;
     }
 
-    D3D12_PRIMITIVE_TOPOLOGY_TYPE GetPrimitiveTopologyType(ndq::PRIMITIVE_TOPOLOGY topology)
+    D3D12_PRIMITIVE_TOPOLOGY_TYPE GetPrimitiveTopologyType(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)
     {
         D3D12_PRIMITIVE_TOPOLOGY_TYPE Type = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
         switch (topology)
         {
-        case ndq::PRIMITIVE_TOPOLOGY::UNDEFINED:
+        case ndq::NDQ_PRIMITIVE_TOPOLOGY::UNDEFINED:
             Type = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
             break;
-        case ndq::PRIMITIVE_TOPOLOGY::POINTLIST:
+        case ndq::NDQ_PRIMITIVE_TOPOLOGY::POINTLIST:
             Type = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
             break;
-        case ndq::PRIMITIVE_TOPOLOGY::LINELIST:
+        case ndq::NDQ_PRIMITIVE_TOPOLOGY::LINELIST:
             Type = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
             break;
-        case ndq::PRIMITIVE_TOPOLOGY::LINESTRIP:
+        case ndq::NDQ_PRIMITIVE_TOPOLOGY::LINESTRIP:
             Type = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
             break;
-        case ndq::PRIMITIVE_TOPOLOGY::TRIANGLELIST:
+        case ndq::NDQ_PRIMITIVE_TOPOLOGY::TRIANGLELIST:
             Type = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
             break;
         }
@@ -120,10 +120,10 @@ namespace Internal
     class Shader : public ndq::IShader
     {
     public:
-        Shader(ndq::SHADER_TYPE type, Microsoft::WRL::ComPtr<IDxcBlob> pBlob)
+        Shader(ndq::NDQ_SHADER_TYPE type, Microsoft::WRL::ComPtr<IDxcBlob> pBlob)
             : mType(type), mBlob(pBlob) {}
 
-        ndq::SHADER_TYPE GetShaderType() const
+        ndq::NDQ_SHADER_TYPE GetShaderType() const
         {
             return mType;
         }
@@ -138,19 +138,19 @@ namespace Internal
             return mBlob->GetBufferSize();
         }
         
-        ndq::SHADER_TYPE mType;
+        ndq::NDQ_SHADER_TYPE mType;
         Microsoft::WRL::ComPtr<IDxcBlob> mBlob;
     };
 
-    std::wstring GetShaderTypeString(ndq::SHADER_TYPE shaderType)
+    std::wstring GetShaderTypeString(ndq::NDQ_SHADER_TYPE shaderType)
     {
         std::wstring Temp;
         switch (shaderType)
         {
-        case ndq::SHADER_TYPE::VERTEX:
+        case ndq::NDQ_SHADER_TYPE::VERTEX:
             Temp = L"vs_6_6";
             break;
-        case ndq::SHADER_TYPE::PIXEL:
+        case ndq::NDQ_SHADER_TYPE::PIXEL:
             Temp = L"ps_6_6";
             break;
         }
@@ -183,23 +183,23 @@ namespace Internal
     class GraphicsTexture2D : public ndq::IGraphicsTexture2D
     {
     public:
-        GraphicsTexture2D(Microsoft::WRL::ComPtr<ID3D12Resource> pResource, ndq::uint32 width, ndq::uint32 height, ndq::RESOURCE_FORMAT format) : mResource(pResource), mWidth(width), mHeight(height), mFormat(format) {}
+        GraphicsTexture2D(Microsoft::WRL::ComPtr<ID3D12Resource> pResource, ndq::uint32 width, ndq::uint32 height, ndq::NDQ_RESOURCE_FORMAT format) : mResource(pResource), mWidth(width), mHeight(height), mFormat(format) {}
 
         void* GetRawResource() const { return mResource.Get(); }
         ndq::uint32 GetWidth() const { return mWidth; }
         ndq::uint32 GetHeight() const { return mHeight; }
-        ndq::RESOURCE_FORMAT GetFormat() const { return mFormat; }
+        ndq::NDQ_RESOURCE_FORMAT GetFormat() const { return mFormat; }
 
         Microsoft::WRL::ComPtr<ID3D12Resource> mResource;
         ndq::uint32 mWidth;
         ndq::uint32 mHeight;
-        ndq::RESOURCE_FORMAT mFormat;
+        ndq::NDQ_RESOURCE_FORMAT mFormat;
     };
 
     class CommandList : public ndq::ICommandList
     {
     public:
-        CommandList(ndq::COMMAND_LIST_TYPE type, Microsoft::WRL::ComPtr<ID3D12CommandAllocator> pAllocator, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList)
+        CommandList(ndq::NDQ_COMMAND_LIST_TYPE type, Microsoft::WRL::ComPtr<ID3D12CommandAllocator> pAllocator, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList)
         {
             bIsBusy.store(true);
             mValue = 0;
@@ -221,7 +221,7 @@ namespace Internal
             mList->Reset(mAllocator.Get(), nullptr);
         }
 
-        void SetPrimitiveTopology(ndq::PRIMITIVE_TOPOLOGY topology)
+        void SetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)
         {
             if (auto Temp = GetPrimitiveTopologyType(topology); Temp != mCacheGraphicsPSO.PrimitiveTopologyType)
             {
@@ -256,7 +256,7 @@ namespace Internal
             mList->Close();
         }
 
-        ndq::COMMAND_LIST_TYPE GetType() const
+        ndq::NDQ_COMMAND_LIST_TYPE GetType() const
         {
             return mType;
         }
@@ -305,7 +305,7 @@ namespace Internal
 
         std::atomic_bool bIsBusy;
         ndq::uint64 mValue;
-        ndq::COMMAND_LIST_TYPE mType;
+        ndq::NDQ_COMMAND_LIST_TYPE mType;
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mAllocator;
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mList;
 
@@ -416,9 +416,9 @@ namespace Internal
         {
             if (!bIsReleased)
             {
-                Wait(ndq::COMMAND_LIST_TYPE::GRAPHICS);
-                Wait(ndq::COMMAND_LIST_TYPE::COPY);
-                Wait(ndq::COMMAND_LIST_TYPE::COMPUTE);
+                Wait(ndq::NDQ_COMMAND_LIST_TYPE::GRAPHICS);
+                Wait(ndq::NDQ_COMMAND_LIST_TYPE::COPY);
+                Wait(ndq::NDQ_COMMAND_LIST_TYPE::COMPUTE);
 
                 mDevice.Reset();
                 mSwapChain.Reset();
@@ -461,18 +461,18 @@ namespace Internal
             MoveToNextFrame();
         }
 
-        ndq::uint64 GetCompletedFenceValue(ndq::COMMAND_LIST_TYPE type) const
+        ndq::uint64 GetCompletedFenceValue(ndq::NDQ_COMMAND_LIST_TYPE type) const
         {
             ndq::uint64 Val = 0;
             switch (type)
             {
-            case ndq::COMMAND_LIST_TYPE::GRAPHICS:
+            case ndq::NDQ_COMMAND_LIST_TYPE::GRAPHICS:
                 Val = mGraphicsFence->GetCompletedValue();
                 break;
-            case ndq::COMMAND_LIST_TYPE::COPY:
+            case ndq::NDQ_COMMAND_LIST_TYPE::COPY:
                 Val = mCopyFence->GetCompletedValue();
                 break;
-            case ndq::COMMAND_LIST_TYPE::COMPUTE:
+            case ndq::NDQ_COMMAND_LIST_TYPE::COMPUTE:
                 Val = mComputeFence->GetCompletedValue();
                 break;
             }
@@ -486,15 +486,15 @@ namespace Internal
             ID3D12CommandList* Lists[1] = { reinterpret_cast<ID3D12CommandList*> (TempList->GetRawList()) };
             switch (Type)
             {
-            case ndq::COMMAND_LIST_TYPE::GRAPHICS:
+            case ndq::NDQ_COMMAND_LIST_TYPE::GRAPHICS:
                 TempList->mValue = mGraphicsFenceValue.fetch_add(1);
                 mGraphicsQueue->ExecuteCommandLists(1, Lists);
                 break;
-            case ndq::COMMAND_LIST_TYPE::COPY:
+            case ndq::NDQ_COMMAND_LIST_TYPE::COPY:
                 TempList->mValue = mCopyFenceValue.fetch_add(1);
                 mCopyQueue->ExecuteCommandLists(1, Lists);
                 break;
-            case ndq::COMMAND_LIST_TYPE::COMPUTE:
+            case ndq::NDQ_COMMAND_LIST_TYPE::COMPUTE:
                 TempList->mValue = mComputeFenceValue.fetch_add(1);
                 mComputeQueue->ExecuteCommandLists(1, Lists);
                 break;
@@ -508,17 +508,17 @@ namespace Internal
             return mDevice.Get();
         }
 
-        void Wait(ndq::COMMAND_LIST_TYPE type)
+        void Wait(ndq::NDQ_COMMAND_LIST_TYPE type)
         {
             switch (type)
             {
-            case ndq::COMMAND_LIST_TYPE::GRAPHICS:
+            case ndq::NDQ_COMMAND_LIST_TYPE::GRAPHICS:
                 WaitForQueue(mGraphicsQueue.Get());
                 break;
-            case ndq::COMMAND_LIST_TYPE::COPY:
+            case ndq::NDQ_COMMAND_LIST_TYPE::COPY:
                 WaitForQueue(mCopyQueue.Get());
                 break;
-            case ndq::COMMAND_LIST_TYPE::COMPUTE:
+            case ndq::NDQ_COMMAND_LIST_TYPE::COMPUTE:
                 WaitForQueue(mComputeQueue.Get());
                 break;
             }
@@ -598,14 +598,14 @@ namespace Internal
             return Queue;
         }
 
-        std::shared_ptr<ndq::ICommandList> GetCommandList(ndq::COMMAND_LIST_TYPE type)
+        std::shared_ptr<ndq::ICommandList> GetCommandList(ndq::NDQ_COMMAND_LIST_TYPE type)
         {
             ndq::uint64 CurrentValue;
             ndq::size_type ListCount;
             bool Expected = false;
             switch (type)
             {
-            case ndq::COMMAND_LIST_TYPE::GRAPHICS:
+            case ndq::NDQ_COMMAND_LIST_TYPE::GRAPHICS:
                 CurrentValue = mGraphicsFence->GetCompletedValue();
                 ListCount = mGraphicsLists.size();
                 for (ndq::size_type i = 0; i < ListCount; ++i)
@@ -620,7 +620,7 @@ namespace Internal
                     }
                 }
                 break;
-            case ndq::COMMAND_LIST_TYPE::COPY:
+            case ndq::NDQ_COMMAND_LIST_TYPE::COPY:
                 CurrentValue = mCopyFence->GetCompletedValue();
                 ListCount = mCopyLists.size();
                 for (ndq::size_type i = 0; i < ListCount; ++i)
@@ -635,7 +635,7 @@ namespace Internal
                     }
                 }
                 break;
-            case ndq::COMMAND_LIST_TYPE::COMPUTE:
+            case ndq::NDQ_COMMAND_LIST_TYPE::COMPUTE:
                 CurrentValue = mComputeFence->GetCompletedValue();
                 ListCount = mComputeLists.size();
                 for (ndq::size_type i = 0; i < ListCount; ++i)
@@ -656,7 +656,7 @@ namespace Internal
             return TempPtr;
         }
 
-        std::shared_ptr<ndq::ICommandList> CreateList(ndq::COMMAND_LIST_TYPE type)
+        std::shared_ptr<ndq::ICommandList> CreateList(ndq::NDQ_COMMAND_LIST_TYPE type)
         {
             ID3D12Device4* TempDevice = reinterpret_cast<ID3D12Device4*>(GetRawDevice());
             std::shared_ptr<CommandList> TempPtr;
@@ -664,19 +664,19 @@ namespace Internal
             Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> List;
             switch (type)
             {
-            case ndq::COMMAND_LIST_TYPE::GRAPHICS:
+            case ndq::NDQ_COMMAND_LIST_TYPE::GRAPHICS:
                 TempDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(Allocator.ReleaseAndGetAddressOf()));
                 TempDevice->CreateCommandList1(NDQ_NODE_MASK, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
                 TempPtr = std::shared_ptr<CommandList>(new CommandList(type, Allocator, List));
                 mGraphicsLists.push_back(TempPtr);
                 break;
-            case ndq::COMMAND_LIST_TYPE::COPY:
+            case ndq::NDQ_COMMAND_LIST_TYPE::COPY:
                 TempDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(Allocator.ReleaseAndGetAddressOf()));
                 TempDevice->CreateCommandList1(NDQ_NODE_MASK, D3D12_COMMAND_LIST_TYPE_COPY, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
                 TempPtr = std::shared_ptr<CommandList>(new CommandList(type, Allocator, List));
                 mCopyLists.push_back(TempPtr);
                 break;
-            case ndq::COMMAND_LIST_TYPE::COMPUTE:
+            case ndq::NDQ_COMMAND_LIST_TYPE::COMPUTE:
                 TempDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(Allocator.ReleaseAndGetAddressOf()));
                 TempDevice->CreateCommandList1(NDQ_NODE_MASK, D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(List.ReleaseAndGetAddressOf()));
                 TempPtr = std::shared_ptr<CommandList>(new CommandList(type, Allocator, List));
@@ -686,7 +686,7 @@ namespace Internal
             return TempPtr;
         }
 
-        std::shared_ptr<ndq::IGraphicsBuffer> AllocateBuffer(const ndq::GRAPHICS_BUFFER_DESC* pDesc)
+        std::shared_ptr<ndq::IGraphicsBuffer> AllocateBuffer(const ndq::NDQ_GRAPHICS_BUFFER_DESC* pDesc)
         {
             D3D12_RESOURCE_DESC BufferResDesc{};
             BufferResDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -717,7 +717,7 @@ namespace Internal
             return retVal;
         }
 
-        std::shared_ptr<ndq::IGraphicsTexture2D> AllocateTexture2D(const ndq::GRAPHICS_TEXTURE_DESC* pDesc)
+        std::shared_ptr<ndq::IGraphicsTexture2D> AllocateTexture2D(const ndq::NDQ_GRAPHICS_TEXTURE_DESC* pDesc)
         {
             D3D12_RESOURCE_DESC TextureResDesc{};
             TextureResDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -856,7 +856,7 @@ namespace ndq
         return Device;
     }
 
-    std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, const SHADER_DEFINE* pDefines, uint32 defineCount, const wchar_t* entryPoint, SHADER_TYPE shaderType)
+    std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, const NDQ_SHADER_DEFINE* pDefines, uint32 defineCount, const wchar_t* entryPoint, NDQ_SHADER_TYPE shaderType)
     {
         static HMODULE DXCLIB = LoadLibraryW(L"dxcompiler.dll");
         auto _DxcCreateInstance = (DxcCreateInstanceProc)GetProcAddress(DXCLIB, "DxcCreateInstance");
