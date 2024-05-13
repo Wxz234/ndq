@@ -11,6 +11,7 @@ namespace ndq
         COMMON,
         RENDER_TARGET,
         READ,
+        COPY_DEST,
     };
 
     enum class NDQ_RESOURCE_FORMAT
@@ -54,20 +55,17 @@ namespace ndq
         PIXEL,
     };
 
-    struct NDQ_GRAPHICS_BUFFER_DESC
+    struct NDQ_BUFFER_DESC
     {
-        NDQ_RESOURCE_STATE State;
-        NDQ_RESOURCE_HEAP_TYPE Type;
         NDQ_RESOURCE_FLAGS Flags;
         size_type SizeInBytes;
     };
 
-    struct NDQ_GRAPHICS_TEXTURE_DESC
+    struct NDQ_TEXTURE2D_DESC
     {
-        NDQ_RESOURCE_STATE State;
         NDQ_RESOURCE_FLAGS Flags;
         NDQ_RESOURCE_FORMAT Format;
-        uint32 Width;
+        uint64 Width;
         uint32 Height;
         uint16 MipLevels;
     };
@@ -76,6 +74,12 @@ namespace ndq
     {
         const wchar_t* Name;
         const wchar_t* Value;
+    };
+
+    enum class NDQ_RESOURCE_DIMENSION {
+        UNKNOWN = 0,
+        BUFFER = 1,
+        TEXTURE2D = 3,
     };
 
     struct NDQ_BUFFER_RTV
@@ -119,7 +123,7 @@ namespace ndq
     class IGraphicsResource
     {
     public:
-        virtual void* GetRawResource() const = 0;
+        virtual NDQ_RESOURCE_DIMENSION GetType() const = 0;
     };
 
     class IGraphicsBuffer : public IGraphicsResource
@@ -132,9 +136,7 @@ namespace ndq
     class IGraphicsTexture2D : public IGraphicsResource
     {
     public:
-        virtual uint32 GetWidth() const = 0;
-        virtual uint32 GetHeight() const = 0;
-        virtual NDQ_RESOURCE_FORMAT GetFormat() const = 0;
+        virtual NDQ_TEXTURE2D_DESC GetDesc() const = 0;
     };
 
     class ICommandList
@@ -154,8 +156,10 @@ namespace ndq
         virtual void ExecuteCommandList(ICommandList* pList) = 0;
         virtual void Wait(NDQ_COMMAND_LIST_TYPE type) = 0;
         virtual std::shared_ptr<ICommandList> GetCommandList(NDQ_COMMAND_LIST_TYPE type) = 0;
-        virtual std::shared_ptr<IGraphicsBuffer> AllocateBuffer(const NDQ_GRAPHICS_BUFFER_DESC* pDesc) = 0;
-        virtual std::shared_ptr<IGraphicsTexture2D> AllocateTexture2D(const NDQ_GRAPHICS_TEXTURE_DESC* pDesc) = 0;
+        virtual std::shared_ptr<IGraphicsBuffer> AllocateUploadBuffer(const NDQ_BUFFER_DESC* pDesc) = 0;
+        virtual std::shared_ptr<IGraphicsBuffer> AllocateDefaultBuffer(const NDQ_BUFFER_DESC* pDesc) = 0;
+        virtual std::shared_ptr<IGraphicsBuffer> AllocateReadbackBuffer(const NDQ_BUFFER_DESC* pDesc) = 0;
+        virtual std::shared_ptr<IGraphicsTexture2D> AllocateTexture2D(const NDQ_TEXTURE2D_DESC* pDesc) = 0;
     };
 
     std::shared_ptr<IGraphicsDevice> GetGraphicsDevice();
