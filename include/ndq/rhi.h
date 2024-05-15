@@ -131,6 +131,7 @@ namespace ndq
     public:
         virtual void Map(void** ppData) = 0;
         virtual void Unmap() = 0;
+        virtual NDQ_BUFFER_DESC GetDesc() const = 0;
     };
 
     class IGraphicsTexture2D : public IGraphicsResource

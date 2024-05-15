@@ -163,12 +163,8 @@ namespace Internal
     class GraphicsBuffer : public ndq::IGraphicsBuffer
     {
     public:
-        GraphicsBuffer(Microsoft::WRL::ComPtr<ID3D12Resource> pResource) : mResource(pResource) {}
+        GraphicsBuffer(Microsoft::WRL::ComPtr<ID3D12Resource> pResource,const ndq::NDQ_BUFFER_DESC *pDesc) : mResource(pResource), mDesc(*pDesc) {}
 
-        void* GetRawResource() const
-        {
-            return mResource.Get();
-        }
 
         void Map(void** ppData)
         {
@@ -185,7 +181,13 @@ namespace Internal
             return ndq::NDQ_RESOURCE_DIMENSION::BUFFER;
         }
 
+        ndq::NDQ_BUFFER_DESC GetDesc() const
+        {
+            return mDesc;
+        }
+
         Microsoft::WRL::ComPtr<ID3D12Resource> mResource;
+        ndq::NDQ_BUFFER_DESC mDesc;
     };
 
     class GraphicsTexture2D : public ndq::IGraphicsTexture2D
@@ -712,7 +714,7 @@ namespace Internal
             Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
             mDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::READ), nullptr, IID_PPV_ARGS(&pResource));
 
-            auto* RawPtr = new GraphicsBuffer(pResource);
+            auto* RawPtr = new GraphicsBuffer(pResource, pDesc);
             std::shared_ptr<ndq::IGraphicsBuffer> retVal(RawPtr);
             std::shared_ptr<ndq::IGraphicsResource> TempPtr = retVal;
             mGPURes.push_back(TempPtr);
@@ -743,7 +745,7 @@ namespace Internal
             Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
             mDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::COMMON), nullptr, IID_PPV_ARGS(&pResource));
 
-            auto* RawPtr = new GraphicsBuffer(pResource);
+            auto* RawPtr = new GraphicsBuffer(pResource, pDesc);
             std::shared_ptr<ndq::IGraphicsBuffer> retVal(RawPtr);
             std::shared_ptr<ndq::IGraphicsResource> TempPtr = retVal;
             mGPURes.push_back(TempPtr);
@@ -774,7 +776,7 @@ namespace Internal
             Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
             mDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::COPY_DEST), nullptr, IID_PPV_ARGS(&pResource));
 
-            auto* RawPtr = new GraphicsBuffer(pResource);
+            auto* RawPtr = new GraphicsBuffer(pResource, pDesc);
             std::shared_ptr<ndq::IGraphicsBuffer> retVal(RawPtr);
             std::shared_ptr<ndq::IGraphicsResource> TempPtr = retVal;
             mGPURes.push_back(TempPtr);
