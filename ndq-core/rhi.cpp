@@ -260,6 +260,16 @@ namespace Internal
             mList->Close();
         }
 
+        void DrawInstanced(ndq::uint32 VertexCountPerInstance, ndq::uint32 InstanceCount, ndq::uint32 StartVertexLocation, ndq::uint32 StartInstanceLocation)
+        {
+            mList->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation);
+        }
+
+        void DrawIndexedInstanced(ndq::uint32 IndexCountPerInstance, ndq::uint32 InstanceCount, ndq::uint32 StartIndexLocation, ndq::int32 BaseVertexLocation, ndq::uint32 StartInstanceLocation)
+        {
+            mList->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+        }
+
         ndq::NDQ_COMMAND_LIST_TYPE GetType() const
         {
             return mType;
