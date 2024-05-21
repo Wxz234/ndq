@@ -125,7 +125,7 @@ namespace Internal
     {
     public:
         Shader(ndq::NDQ_SHADER_TYPE type, Microsoft::WRL::ComPtr<IDxcBlob> pBlob)
-            : mType(type), mBlob(pBlob) {}
+            : mType(type), pBlob(pBlob) {}
 
         ndq::NDQ_SHADER_TYPE GetShaderType() const
         {
@@ -134,17 +134,17 @@ namespace Internal
 
         void* GetBlobPointer() const
         {
-            return mBlob->GetBufferPointer();
+            return pBlob->GetBufferPointer();
         }
 
         ndq::size_type GetBlobSize() const
         {
-            return mBlob->GetBufferSize();
+            return pBlob->GetBufferSize();
         }
         
         ndq::NDQ_SHADER_TYPE mType;
-        Microsoft::WRL::ComPtr<IDxcBlob> mBlob;
-        Microsoft::WRL::ComPtr<IDxcBlob> mReflectionData;
+        Microsoft::WRL::ComPtr<IDxcBlob> pBlob;
+        Microsoft::WRL::ComPtr<IDxcBlob> pReflectionData;
     };
 
     std::wstring GetShaderTypeString(ndq::NDQ_SHADER_TYPE shaderType)
@@ -165,17 +165,17 @@ namespace Internal
     class GraphicsBuffer : public ndq::IGraphicsBuffer
     {
     public:
-        GraphicsBuffer(Microsoft::WRL::ComPtr<ID3D12Resource> pResource,const ndq::NDQ_BUFFER_DESC *pDesc) : mResource(pResource), mDesc(*pDesc) {}
+        GraphicsBuffer(Microsoft::WRL::ComPtr<ID3D12Resource> pResource,const ndq::NDQ_BUFFER_DESC *pDesc) : pResource(pResource), mDesc(*pDesc) {}
 
 
         void Map(void** ppData)
         {
-            mResource->Map(0, nullptr, ppData);
+            pResource->Map(0, nullptr, ppData);
         }
 
         void Unmap()
         {
-            mResource->Unmap(0, nullptr);
+            pResource->Unmap(0, nullptr);
         }
 
         ndq::NDQ_RESOURCE_DIMENSION GetType() const
@@ -188,17 +188,17 @@ namespace Internal
             return mDesc;
         }
 
-        Microsoft::WRL::ComPtr<ID3D12Resource> mResource;
+        Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
         ndq::NDQ_BUFFER_DESC mDesc;
     };
 
     class GraphicsTexture2D : public ndq::IGraphicsTexture2D
     {
     public:
-        GraphicsTexture2D(Microsoft::WRL::ComPtr<ID3D12Resource> pResource,const ndq::NDQ_TEXTURE2D_DESC* pDesc) : mResource(pResource), mDesc(*pDesc) {}
+        GraphicsTexture2D(Microsoft::WRL::ComPtr<ID3D12Resource> pResource,const ndq::NDQ_TEXTURE2D_DESC* pDesc) : pResource(pResource), mDesc(*pDesc) {}
         ndq::NDQ_RESOURCE_DIMENSION GetType() const { return ndq::NDQ_RESOURCE_DIMENSION::TEXTURE2D; }
         ndq::NDQ_TEXTURE2D_DESC GetDesc() const { return mDesc; }
-        Microsoft::WRL::ComPtr<ID3D12Resource> mResource;
+        Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
         ndq::NDQ_TEXTURE2D_DESC mDesc;
     };
 
@@ -210,8 +210,8 @@ namespace Internal
             bIsBusy.store(true);
             mValue = 0;
             mType = type;
-            mAllocator = pAllocator;
-            mList = pList;
+            this->pAllocator = pAllocator;
+            this->pList = pList;
             bPSODirty = false;
             _InitPSO();
         }
@@ -223,8 +223,8 @@ namespace Internal
                 ndq::GetGraphicsDevice()->Wait(mType);
             }
 
-            mAllocator->Reset();
-            mList->Reset(mAllocator.Get(), nullptr);
+            pAllocator->Reset();
+            pList->Reset(pAllocator.Get(), nullptr);
         }
 
         void SetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)
@@ -234,42 +234,42 @@ namespace Internal
                 mCacheGraphicsPSO.PrimitiveTopologyType = Temp;
                 bPSODirty = true;
             }
-            mList->IASetPrimitiveTopology(static_cast<D3D12_PRIMITIVE_TOPOLOGY>(topology));
+            pList->IASetPrimitiveTopology(static_cast<D3D12_PRIMITIVE_TOPOLOGY>(topology));
         }
 
         void SetVertexShader(ndq::IShader* pShader)
         {
-            if (auto TempShader = dynamic_cast<Shader*>(pShader); mVertexBlob != TempShader->mBlob)
+            if (auto TempShader = dynamic_cast<Shader*>(pShader); pVertexBlob != TempShader->pBlob)
             {
-                mVertexBlob = TempShader->mBlob;
-                mCacheGraphicsPSO.VS = CD3DX12_SHADER_BYTECODE(mVertexBlob->GetBufferPointer(), mVertexBlob->GetBufferSize());
+                pVertexBlob = TempShader->pBlob;
+                mCacheGraphicsPSO.VS = CD3DX12_SHADER_BYTECODE(pVertexBlob->GetBufferPointer(), pVertexBlob->GetBufferSize());
                 bPSODirty = true;
             }
         }
 
         void SetPixelShader(ndq::IShader* pShader)
         {
-            if (auto TempShader = dynamic_cast<Shader*>(pShader); mPixelBlob != TempShader->mBlob)
+            if (auto TempShader = dynamic_cast<Shader*>(pShader); pPixelBlob != TempShader->pBlob)
             {
-                mPixelBlob = TempShader->mBlob;
-                mCacheGraphicsPSO.PS = CD3DX12_SHADER_BYTECODE(mPixelBlob->GetBufferPointer(), mPixelBlob->GetBufferSize());
+                pPixelBlob = TempShader->pBlob;
+                mCacheGraphicsPSO.PS = CD3DX12_SHADER_BYTECODE(pPixelBlob->GetBufferPointer(), pPixelBlob->GetBufferSize());
                 bPSODirty = true;
             }
         }
 
         void Close()
         {
-            mList->Close();
+            pList->Close();
         }
 
         void DrawInstanced(ndq::uint32 VertexCountPerInstance, ndq::uint32 InstanceCount, ndq::uint32 StartVertexLocation, ndq::uint32 StartInstanceLocation)
         {
-            mList->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation);
+            pList->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation);
         }
 
         void DrawIndexedInstanced(ndq::uint32 IndexCountPerInstance, ndq::uint32 InstanceCount, ndq::uint32 StartIndexLocation, ndq::int32 BaseVertexLocation, ndq::uint32 StartInstanceLocation)
         {
-            mList->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+            pList->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
         }
 
         ndq::NDQ_COMMAND_LIST_TYPE GetType() const
@@ -279,7 +279,7 @@ namespace Internal
 
         void* GetRawList() const
         {
-            return mList.Get();
+            return pList.Get();
         }
 
         void _InitPSO()
@@ -327,17 +327,17 @@ namespace Internal
         std::atomic_bool bIsBusy;
         ndq::uint64 mValue;
         ndq::NDQ_COMMAND_LIST_TYPE mType;
-        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mAllocator;
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mList;
+        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> pAllocator;
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList;
 
         D3D12_GRAPHICS_PIPELINE_STATE_DESC mCacheGraphicsPSO;
 
-        Microsoft::WRL::ComPtr<IDxcBlob> mVertexBlob;
-        Microsoft::WRL::ComPtr<IDxcBlob> mPixelBlob;
-        Microsoft::WRL::ComPtr<IDxcBlob> mVertexReflectionData;
-        Microsoft::WRL::ComPtr<IDxcBlob> mPixelReflectionData;
+        Microsoft::WRL::ComPtr<IDxcBlob> pVertexBlob;
+        Microsoft::WRL::ComPtr<IDxcBlob> pPixelBlob;
+        Microsoft::WRL::ComPtr<IDxcBlob> pVertexReflectionData;
+        Microsoft::WRL::ComPtr<IDxcBlob> pPixelReflectionData;
 
-        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> mReflection;
+        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pReflection;
 
         bool bPSODirty;
     };
@@ -370,15 +370,15 @@ namespace Internal
             Factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&Adapter));
 
             auto _D3D12CreateDevice = (PFN_D3D12_CREATE_DEVICE)GetProcAddress(mD3D12, "D3D12CreateDevice");
-            _D3D12CreateDevice(Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&mDevice));
+            _D3D12CreateDevice(Adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&pDevice));
 
             D3D12_COMMAND_QUEUE_DESC QueueDesc{};
             QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-            mDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&mGraphicsQueue));
+            pDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&pGraphicsQueue));
             QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
-            mDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&mCopyQueue));
+            pDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&pCopyQueue));
             QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
-            mDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&mComputeQueue));
+            pDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&pComputeQueue));
 
             DXGI_SWAP_CHAIN_DESC1 ScDesc{};
             ScDesc.BufferCount = NDQ_SWAPCHAIN_COUNT;
@@ -396,35 +396,35 @@ namespace Internal
             FsSwapChainDesc.Windowed = TRUE;
             Microsoft::WRL::ComPtr<IDXGISwapChain1> SwapChain;
 
-            Factory->CreateSwapChainForHwnd(mGraphicsQueue.Get(), hwnd, &ScDesc, &FsSwapChainDesc, nullptr, &SwapChain);
+            Factory->CreateSwapChainForHwnd(pGraphicsQueue.Get(), hwnd, &ScDesc, &FsSwapChainDesc, nullptr, &SwapChain);
             Factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_WINDOW_CHANGES | DXGI_MWA_NO_ALT_ENTER);
 
-            SwapChain.As(&mSwapChain);
+            SwapChain.As(&pSwapChain);
 
             D3D12_DESCRIPTOR_HEAP_DESC RTVDescriptorHeapDesc{};
             RTVDescriptorHeapDesc.NumDescriptors = NDQ_SWAPCHAIN_COUNT;
             RTVDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-            mDevice->CreateDescriptorHeap(&RTVDescriptorHeapDesc, IID_PPV_ARGS(&mRtvDescriptorHeap));
+            pDevice->CreateDescriptorHeap(&RTVDescriptorHeapDesc, IID_PPV_ARGS(&pRtvDescriptorHeap));
 
             BuildRT();
 
-            mFrameIndex = mSwapChain->GetCurrentBackBufferIndex();
+            mFrameIndex = pSwapChain->GetCurrentBackBufferIndex();
 
-            mDevice->CreateFence(mFenceValue[mFrameIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence));
+            pDevice->CreateFence(mFenceValue[mFrameIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence));
             ++mFenceValue[mFrameIndex];
             mEvent.Attach(CreateEventW(nullptr, FALSE, FALSE, nullptr));
 
             {
-                mDevice->CreateFence(mGraphicsFenceValue++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mGraphicsFence));
+                pDevice->CreateFence(mGraphicsFenceValue++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pGraphicsFence));
                 mGraphicsEvent.Attach(CreateEventW(nullptr, FALSE, FALSE, nullptr));
 
-                mDevice->CreateFence(mCopyFenceValue++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mCopyFence));
+                pDevice->CreateFence(mCopyFenceValue++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pCopyFence));
                 mCopyEvent.Attach(CreateEventW(nullptr, FALSE, FALSE, nullptr));
 
-                mDevice->CreateFence(mComputeFenceValue++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mComputeFence));
+                pDevice->CreateFence(mComputeFenceValue++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pComputeFence));
                 mComputeEvent.Attach(CreateEventW(nullptr, FALSE, FALSE, nullptr));
 
-                mRTVHandle = mDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+                mRTVHandle = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
             }
 
             mStates.resize(NDQ_SWAPCHAIN_COUNT, D3D12_RESOURCE_STATE_PRESENT);
@@ -445,25 +445,25 @@ namespace Internal
                 Wait(ndq::NDQ_COMMAND_LIST_TYPE::COPY);
                 Wait(ndq::NDQ_COMMAND_LIST_TYPE::COMPUTE);
 
-                mDevice.Reset();
-                mSwapChain.Reset();
-                mGraphicsQueue.Reset();
-                mCopyQueue.Reset();
-                mComputeQueue.Reset();
-                mRtvDescriptorHeap.Reset();
+                pDevice.Reset();
+                pSwapChain.Reset();
+                pGraphicsQueue.Reset();
+                pCopyQueue.Reset();
+                pComputeQueue.Reset();
+                pRtvDescriptorHeap.Reset();
                 for (ndq::int32 i = 0; i < NDQ_SWAPCHAIN_COUNT; ++i)
                 {
-                    mRT[i].Reset();
-                    mRTObject[i].reset();
+                    pRT[i].Reset();
+                    pRTObject[i].reset();
                 }
 
-                mFence.Reset();
+                pFence.Reset();
                 mEvent.Close();
-                mGraphicsFence.Reset();
+                pGraphicsFence.Reset();
                 mGraphicsEvent.Close();
-                mCopyFence.Reset();
+                pCopyFence.Reset();
                 mCopyEvent.Close();
-                mComputeFence.Reset();
+                pComputeFence.Reset();
                 mComputeEvent.Close();
 
                 mGraphicsLists.clear();
@@ -471,7 +471,7 @@ namespace Internal
                 mComputeLists.clear();
 
                 mGPURes.clear();
-                mDefaultDescriptorHeap.Reset();
+                pDefaultDescriptorHeap.Reset();
 
                 FreeLibrary(mD3D12);
                 FreeLibrary(mDXGI);
@@ -481,7 +481,7 @@ namespace Internal
 
         void Present()
         {
-            mSwapChain->Present(1, 0);
+            pSwapChain->Present(1, 0);
             QueueSignal();
             MoveToNextFrame();
         }
@@ -492,13 +492,13 @@ namespace Internal
             switch (type)
             {
             case ndq::NDQ_COMMAND_LIST_TYPE::GRAPHICS:
-                Val = mGraphicsFence->GetCompletedValue();
+                Val = pGraphicsFence->GetCompletedValue();
                 break;
             case ndq::NDQ_COMMAND_LIST_TYPE::COPY:
-                Val = mCopyFence->GetCompletedValue();
+                Val = pCopyFence->GetCompletedValue();
                 break;
             case ndq::NDQ_COMMAND_LIST_TYPE::COMPUTE:
-                Val = mComputeFence->GetCompletedValue();
+                Val = pComputeFence->GetCompletedValue();
                 break;
             }
             return Val;
@@ -513,15 +513,15 @@ namespace Internal
             {
             case ndq::NDQ_COMMAND_LIST_TYPE::GRAPHICS:
                 TempList->mValue = mGraphicsFenceValue.fetch_add(1);
-                mGraphicsQueue->ExecuteCommandLists(1, Lists);
+                pGraphicsQueue->ExecuteCommandLists(1, Lists);
                 break;
             case ndq::NDQ_COMMAND_LIST_TYPE::COPY:
                 TempList->mValue = mCopyFenceValue.fetch_add(1);
-                mCopyQueue->ExecuteCommandLists(1, Lists);
+                pCopyQueue->ExecuteCommandLists(1, Lists);
                 break;
             case ndq::NDQ_COMMAND_LIST_TYPE::COMPUTE:
                 TempList->mValue = mComputeFenceValue.fetch_add(1);
-                mComputeQueue->ExecuteCommandLists(1, Lists);
+                pComputeQueue->ExecuteCommandLists(1, Lists);
                 break;
             }
 
@@ -530,7 +530,7 @@ namespace Internal
 
         void* GetRawDevice() const
         {
-            return mDevice.Get();
+            return pDevice.Get();
         }
 
         void Wait(ndq::NDQ_COMMAND_LIST_TYPE type)
@@ -538,13 +538,13 @@ namespace Internal
             switch (type)
             {
             case ndq::NDQ_COMMAND_LIST_TYPE::GRAPHICS:
-                WaitForQueue(mGraphicsQueue.Get());
+                WaitForQueue(pGraphicsQueue.Get());
                 break;
             case ndq::NDQ_COMMAND_LIST_TYPE::COPY:
-                WaitForQueue(mCopyQueue.Get());
+                WaitForQueue(pCopyQueue.Get());
                 break;
             case ndq::NDQ_COMMAND_LIST_TYPE::COMPUTE:
-                WaitForQueue(mComputeQueue.Get());
+                WaitForQueue(pComputeQueue.Get());
                 break;
             }
         }
@@ -554,7 +554,7 @@ namespace Internal
             Microsoft::WRL::ComPtr<ID3D12Fence> pFence;
             HANDLE EventHandle = CreateEventW(nullptr, FALSE, FALSE, nullptr);
             ndq::uint64 FenceValue = 0;
-            mDevice->CreateFence(FenceValue++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence));
+            pDevice->CreateFence(FenceValue++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence));
             pCommandQueue->Signal(pFence.Get(), FenceValue);
             pFence->SetEventOnCompletion(FenceValue, EventHandle);
             WaitForSingleObject(EventHandle, INFINITE);
@@ -563,7 +563,7 @@ namespace Internal
 
         D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const
         {
-            auto handle = mRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+            auto handle = pRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
             handle.ptr += (mRTVHandle * mFrameIndex);
             return handle;
         }
@@ -571,37 +571,34 @@ namespace Internal
         void MoveToNextFrame()
         {
             const ndq::uint64 CurrentFenceValue = mFenceValue[mFrameIndex];
-            mGraphicsQueue->Signal(mFence.Get(), CurrentFenceValue);
-
-            mFrameIndex = mSwapChain->GetCurrentBackBufferIndex();
-
-            if (mFence->GetCompletedValue() < mFenceValue[mFrameIndex])
+            pGraphicsQueue->Signal(pFence.Get(), CurrentFenceValue);
+            mFrameIndex = pSwapChain->GetCurrentBackBufferIndex();
+            if (pFence->GetCompletedValue() < mFenceValue[mFrameIndex])
             {
-                mFence->SetEventOnCompletion(mFenceValue[mFrameIndex], mEvent.Get());
+                pFence->SetEventOnCompletion(mFenceValue[mFrameIndex], mEvent.Get());
                 WaitForSingleObjectEx(mEvent.Get(), INFINITE, FALSE);
             }
-
             mFenceValue[mFrameIndex] = CurrentFenceValue + 1;
         }
 
         void QueueSignal()
         {
-            mGraphicsQueue->Signal(mGraphicsFence.Get(), mGraphicsFenceValue++);
-            mCopyQueue->Signal(mCopyFence.Get(), mCopyFenceValue++);
-            mComputeQueue->Signal(mComputeFence.Get(), mComputeFenceValue++);
+            pGraphicsQueue->Signal(pGraphicsFence.Get(), mGraphicsFenceValue++);
+            pCopyQueue->Signal(pCopyFence.Get(), mCopyFenceValue++);
+            pComputeQueue->Signal(pComputeFence.Get(), mComputeFenceValue++);
         }
 
         void BuildRT()
         {
-            auto CpuHandle = mRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-            auto RTVDescriptorSize = mDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+            auto CpuHandle = pRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+            auto RTVDescriptorSize = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
             for (ndq::uint32 n = 0; n < NDQ_SWAPCHAIN_COUNT; ++n)
             {
-                mSwapChain->GetBuffer(n, IID_PPV_ARGS(mRT[n].ReleaseAndGetAddressOf()));
-                mDevice->CreateRenderTargetView(mRT[n].Get(), nullptr, CpuHandle);
+                pSwapChain->GetBuffer(n, IID_PPV_ARGS(pRT[n].ReleaseAndGetAddressOf()));
+                pDevice->CreateRenderTargetView(pRT[n].Get(), nullptr, CpuHandle);
                 CpuHandle.ptr += RTVDescriptorSize;
 
-                _CreateInternalGraphicsTexture2D(mRT[n], n);
+                _CreateInternalGraphicsTexture2D(pRT[n], n);
             }
         }
 
@@ -610,15 +607,15 @@ namespace Internal
             ID3D12CommandQueue* Queue = nullptr;
             if (type == D3D12_COMMAND_LIST_TYPE_DIRECT)
             {
-                Queue = mGraphicsQueue.Get();
+                Queue = pGraphicsQueue.Get();
             }
             else if (type == D3D12_COMMAND_LIST_TYPE_COPY)
             {
-                Queue = mCopyQueue.Get();
+                Queue = pCopyQueue.Get();
             }
             else if (type == D3D12_COMMAND_LIST_TYPE_COMPUTE)
             {
-                Queue = mComputeQueue.Get();
+                Queue = pComputeQueue.Get();
             }
             return Queue;
         }
@@ -631,7 +628,7 @@ namespace Internal
             switch (type)
             {
             case ndq::NDQ_COMMAND_LIST_TYPE::GRAPHICS:
-                CurrentValue = mGraphicsFence->GetCompletedValue();
+                CurrentValue = pGraphicsFence->GetCompletedValue();
                 ListCount = mGraphicsLists.size();
                 for (ndq::size_type i = 0; i < ListCount; ++i)
                 {
@@ -646,7 +643,7 @@ namespace Internal
                 }
                 break;
             case ndq::NDQ_COMMAND_LIST_TYPE::COPY:
-                CurrentValue = mCopyFence->GetCompletedValue();
+                CurrentValue = pCopyFence->GetCompletedValue();
                 ListCount = mCopyLists.size();
                 for (ndq::size_type i = 0; i < ListCount; ++i)
                 {
@@ -661,7 +658,7 @@ namespace Internal
                 }
                 break;
             case ndq::NDQ_COMMAND_LIST_TYPE::COMPUTE:
-                CurrentValue = mComputeFence->GetCompletedValue();
+                CurrentValue = pComputeFence->GetCompletedValue();
                 ListCount = mComputeLists.size();
                 for (ndq::size_type i = 0; i < ListCount; ++i)
                 {
@@ -733,7 +730,7 @@ namespace Internal
             Prop.CreationNodeMask = 1;
             Prop.VisibleNodeMask = 1;
             Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
-            mDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::READ), nullptr, IID_PPV_ARGS(&pResource));
+            pDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::READ), nullptr, IID_PPV_ARGS(&pResource));
 
             auto* RawPtr = new GraphicsBuffer(pResource, pDesc);
             std::shared_ptr<ndq::IGraphicsBuffer> retVal(RawPtr);
@@ -764,7 +761,7 @@ namespace Internal
             Prop.CreationNodeMask = 1;
             Prop.VisibleNodeMask = 1;
             Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
-            mDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::COMMON), nullptr, IID_PPV_ARGS(&pResource));
+            pDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::COMMON), nullptr, IID_PPV_ARGS(&pResource));
 
             auto* RawPtr = new GraphicsBuffer(pResource, pDesc);
             std::shared_ptr<ndq::IGraphicsBuffer> retVal(RawPtr);
@@ -795,7 +792,7 @@ namespace Internal
             Prop.CreationNodeMask = 1;
             Prop.VisibleNodeMask = 1;
             Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
-            mDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::COPY_DEST), nullptr, IID_PPV_ARGS(&pResource));
+            pDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::COPY_DEST), nullptr, IID_PPV_ARGS(&pResource));
 
             auto* RawPtr = new GraphicsBuffer(pResource, pDesc);
             std::shared_ptr<ndq::IGraphicsBuffer> retVal(RawPtr);
@@ -826,7 +823,7 @@ namespace Internal
             Prop.CreationNodeMask = 1;
             Prop.VisibleNodeMask = 1;
             Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
-            mDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &TextureResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::COMMON), nullptr, IID_PPV_ARGS(&pResource));
+            pDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &TextureResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::COMMON), nullptr, IID_PPV_ARGS(&pResource));
 
             auto* RawPtr = new GraphicsTexture2D(pResource, pDesc);
             std::shared_ptr<ndq::IGraphicsTexture2D> retVal(RawPtr);
@@ -880,7 +877,7 @@ namespace Internal
             Desc.NumDescriptors = 8;
             Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
             Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-            mDevice->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(&mDefaultDescriptorHeap));
+            pDevice->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(&pDefaultDescriptorHeap));
         }
 
         void _CreateInternalGraphicsTexture2D(Microsoft::WRL::ComPtr<ID3D12Resource> pRes, ndq::uint32 index)
@@ -892,37 +889,37 @@ namespace Internal
             desc.MipLevels = RawDesc.MipLevels;
             desc.Format = GetResourceFormat(RawDesc.Format);
             desc.Flags = static_cast<ndq::NDQ_RESOURCE_FLAGS>(RawDesc.Flags);
-            mRTObject[index].reset(new GraphicsTexture2D(pRes, &desc));
+            pRTObject[index].reset(new GraphicsTexture2D(pRes, &desc));
         }
 
         HWND mHwnd = NULL;
 
         ndq::uint32 mRTVHandle = 0;
-        Microsoft::WRL::ComPtr<ID3D12Device4> mDevice;
-        Microsoft::WRL::ComPtr<IDXGISwapChain4> mSwapChain;
-        Microsoft::WRL::ComPtr<ID3D12CommandQueue> mGraphicsQueue;
-        Microsoft::WRL::ComPtr<ID3D12CommandQueue> mCopyQueue;
-        Microsoft::WRL::ComPtr<ID3D12CommandQueue> mComputeQueue;
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>  mRtvDescriptorHeap;
-        Microsoft::WRL::ComPtr<ID3D12Resource> mRT[NDQ_SWAPCHAIN_COUNT];
+        Microsoft::WRL::ComPtr<ID3D12Device4> pDevice;
+        Microsoft::WRL::ComPtr<IDXGISwapChain4> pSwapChain;
+        Microsoft::WRL::ComPtr<ID3D12CommandQueue> pGraphicsQueue;
+        Microsoft::WRL::ComPtr<ID3D12CommandQueue> pCopyQueue;
+        Microsoft::WRL::ComPtr<ID3D12CommandQueue> pComputeQueue;
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> pRtvDescriptorHeap;
+        Microsoft::WRL::ComPtr<ID3D12Resource> pRT[NDQ_SWAPCHAIN_COUNT];
         std::vector<D3D12_RESOURCE_STATES> mStates;
 
-        std::unique_ptr<GraphicsTexture2D> mRTObject[NDQ_SWAPCHAIN_COUNT];
+        std::unique_ptr<GraphicsTexture2D> pRTObject[NDQ_SWAPCHAIN_COUNT];
 
         ndq::uint32 mFrameIndex = 0;
 
         ndq::uint64 mFenceValue[NDQ_SWAPCHAIN_COUNT]{};
-        Microsoft::WRL::ComPtr<ID3D12Fence1> mFence;
+        Microsoft::WRL::ComPtr<ID3D12Fence1> pFence;
         Microsoft::WRL::Wrappers::Event mEvent;
 
         std::atomic_uint64_t mGraphicsFenceValue = 0;
-        Microsoft::WRL::ComPtr<ID3D12Fence1> mGraphicsFence;
+        Microsoft::WRL::ComPtr<ID3D12Fence1> pGraphicsFence;
         Microsoft::WRL::Wrappers::Event mGraphicsEvent;
         std::atomic_uint64_t mCopyFenceValue = 0;
-        Microsoft::WRL::ComPtr<ID3D12Fence1> mCopyFence;
+        Microsoft::WRL::ComPtr<ID3D12Fence1> pCopyFence;
         Microsoft::WRL::Wrappers::Event mCopyEvent;
         std::atomic_uint64_t mComputeFenceValue = 0;
-        Microsoft::WRL::ComPtr<ID3D12Fence1> mComputeFence;
+        Microsoft::WRL::ComPtr<ID3D12Fence1> pComputeFence;
         Microsoft::WRL::Wrappers::Event mComputeEvent;
 
         bool bIsReleased = false;
@@ -934,7 +931,7 @@ namespace Internal
         concurrency::concurrent_vector<std::shared_ptr<ndq::IGraphicsResource>> mGPURes;
         std::atomic_size_t mNeedReleaseGPUResCount = 0;
 
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDefaultDescriptorHeap;
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> pDefaultDescriptorHeap;
 
         HMODULE mD3D12{};
         HMODULE mDXGI{};
