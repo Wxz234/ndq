@@ -82,36 +82,6 @@ namespace ndq
         TEXTURE2D = 3,
     };
 
-    struct NDQ_BUFFER_RTV
-    {
-        uint64 FirstElement;
-        uint32 NumElements;
-    };
-
-    struct NDQ_TEX2D_RTV
-    {
-        uint32 MipSlice;
-        uint32 PlaneSlice;
-    };
-
-    enum class NDQ_RTV_DIMENSION
-    {
-        UNKNOWN = 0,
-        BUFFER = 1,
-        TEXTURE2D = 4,
-    };
-
-    struct RENDER_TARGET_VIEW_DESC
-    {
-        NDQ_RESOURCE_FORMAT Format;
-        NDQ_RTV_DIMENSION ViewDimension;
-        union
-        {
-            NDQ_BUFFER_RTV Buffer;
-            NDQ_TEX2D_RTV  Texture2D;
-        };
-    };
-
     class IShader
     {
     public:
