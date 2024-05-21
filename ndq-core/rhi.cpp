@@ -3,6 +3,7 @@
 
 #include <concurrent_vector.h>
 #include <d3d12.h>
+#include <d3d12shader.h>
 #include <d3dcommon.h>
 #include <d3dx12.h>
 #include <dxcapi.h>
@@ -143,6 +144,7 @@ namespace Internal
         
         ndq::NDQ_SHADER_TYPE mType;
         Microsoft::WRL::ComPtr<IDxcBlob> mBlob;
+        Microsoft::WRL::ComPtr<IDxcBlob> mReflectionData;
     };
 
     std::wstring GetShaderTypeString(ndq::NDQ_SHADER_TYPE shaderType)
@@ -317,6 +319,11 @@ namespace Internal
             return CompletedFenceValue >= mValue;
         }
 
+        void _BuildGraphicsRootSignature()
+        {
+
+        }
+
         std::atomic_bool bIsBusy;
         ndq::uint64 mValue;
         ndq::NDQ_COMMAND_LIST_TYPE mType;
@@ -327,6 +334,10 @@ namespace Internal
 
         Microsoft::WRL::ComPtr<IDxcBlob> mVertexBlob;
         Microsoft::WRL::ComPtr<IDxcBlob> mPixelBlob;
+        Microsoft::WRL::ComPtr<IDxcBlob> mVertexReflectionData;
+        Microsoft::WRL::ComPtr<IDxcBlob> mPixelReflectionData;
+
+        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> mReflection;
 
         bool bPSODirty;
     };

@@ -24,6 +24,7 @@ struct App : public ndq::IApplication
     void Update(float t)
     {
         pCmdList->Open();
+        pCmdList->SetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY::TRIANGLELIST);
         pCmdList->Close();
         pGraphicsDevice->ExecuteCommandList(pCmdList.get());
     }
