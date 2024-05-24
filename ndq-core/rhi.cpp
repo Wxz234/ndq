@@ -30,6 +30,36 @@ namespace Internal
 {
     struct PIPELINE_DESC
     {
+        PIPELINE_DESC()
+        {
+            mCacheGraphicsPSO = {};
+            mCacheGraphicsPSO.pRootSignature = nullptr;
+            mCacheGraphicsPSO.VS = {};
+            mCacheGraphicsPSO.PS = {};
+            mCacheGraphicsPSO.DS = {};
+            mCacheGraphicsPSO.HS = {};
+            mCacheGraphicsPSO.GS = {};
+            mCacheGraphicsPSO.StreamOutput = {};
+            mCacheGraphicsPSO.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+            mCacheGraphicsPSO.SampleMask = UINT_MAX;
+            mCacheGraphicsPSO.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+            mCacheGraphicsPSO.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+            mCacheGraphicsPSO.InputLayout = { nullptr, 0 };
+            mCacheGraphicsPSO.IBStripCutValue = {};
+            mCacheGraphicsPSO.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+            mCacheGraphicsPSO.NumRenderTargets = 0;
+            for (UINT i = 0; i < 8; ++i)
+            {
+                mCacheGraphicsPSO.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
+            }
+            mCacheGraphicsPSO.DSVFormat = DXGI_FORMAT_UNKNOWN;
+            mCacheGraphicsPSO.SampleDesc.Count = 1;
+            mCacheGraphicsPSO.SampleDesc.Quality = 0;
+            mCacheGraphicsPSO.NodeMask = NDQ_NODE_MASK;
+            mCacheGraphicsPSO.CachedPSO = {};
+            mCacheGraphicsPSO.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+        }
+
         D3D12_GRAPHICS_PIPELINE_STATE_DESC mCacheGraphicsPSO;
 
         Microsoft::WRL::ComPtr<IDxcBlob> pVertexBlob;
@@ -232,7 +262,6 @@ namespace Internal
             this->pAllocator = pAllocator;
             this->pList = pList;
             bPSODirty = false;
-            _InitPSO();
         }
 
         void Open()
@@ -303,36 +332,6 @@ namespace Internal
         void* GetRawList() const
         {
             return pList.Get();
-        }
-
-        void _InitPSO()
-        {
-            mPipelineDesc.mCacheGraphicsPSO = {};
-            mPipelineDesc.mCacheGraphicsPSO.pRootSignature = nullptr;
-            mPipelineDesc.mCacheGraphicsPSO.VS = {};
-            mPipelineDesc.mCacheGraphicsPSO.PS = {};
-            mPipelineDesc.mCacheGraphicsPSO.DS = {};
-            mPipelineDesc.mCacheGraphicsPSO.HS = {};
-            mPipelineDesc.mCacheGraphicsPSO.GS = {};
-            mPipelineDesc.mCacheGraphicsPSO.StreamOutput = {};
-            mPipelineDesc.mCacheGraphicsPSO.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-            mPipelineDesc.mCacheGraphicsPSO.SampleMask = UINT_MAX;
-            mPipelineDesc.mCacheGraphicsPSO.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-            mPipelineDesc.mCacheGraphicsPSO.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-            mPipelineDesc.mCacheGraphicsPSO.InputLayout = { nullptr, 0 };
-            mPipelineDesc.mCacheGraphicsPSO.IBStripCutValue = {};
-            mPipelineDesc.mCacheGraphicsPSO.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
-            mPipelineDesc.mCacheGraphicsPSO.NumRenderTargets = 0;
-            for (UINT i = 0;i < 8; ++i)
-            {
-                mPipelineDesc.mCacheGraphicsPSO.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
-            }
-            mPipelineDesc.mCacheGraphicsPSO.DSVFormat = DXGI_FORMAT_UNKNOWN;
-            mPipelineDesc.mCacheGraphicsPSO.SampleDesc.Count = 1;
-            mPipelineDesc.mCacheGraphicsPSO.SampleDesc.Quality = 0;
-            mPipelineDesc.mCacheGraphicsPSO.NodeMask = NDQ_NODE_MASK;
-            mPipelineDesc.mCacheGraphicsPSO.CachedPSO = {};
-            mPipelineDesc.mCacheGraphicsPSO.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
         }
 
         void _MakePipeline()
