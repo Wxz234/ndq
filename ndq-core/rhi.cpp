@@ -124,8 +124,8 @@ namespace Internal
     class Shader : public ndq::IShader
     {
     public:
-        Shader(ndq::NDQ_SHADER_TYPE type, Microsoft::WRL::ComPtr<IDxcBlob> pBlob)
-            : mType(type), pBlob(pBlob) {}
+        Shader(ndq::NDQ_SHADER_TYPE type, Microsoft::WRL::ComPtr<IDxcBlob> pBlob, Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pReflection)
+            : mType(type), pBlob(pBlob), pReflection(pReflection) {}
 
         ndq::NDQ_SHADER_TYPE GetShaderType() const
         {
@@ -144,7 +144,7 @@ namespace Internal
         
         ndq::NDQ_SHADER_TYPE mType;
         Microsoft::WRL::ComPtr<IDxcBlob> pBlob;
-        Microsoft::WRL::ComPtr<IDxcBlob> pReflectionData;
+        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pReflection;
     };
 
     std::wstring GetShaderTypeString(ndq::NDQ_SHADER_TYPE shaderType)
@@ -334,10 +334,9 @@ namespace Internal
 
         Microsoft::WRL::ComPtr<IDxcBlob> pVertexBlob;
         Microsoft::WRL::ComPtr<IDxcBlob> pPixelBlob;
-        Microsoft::WRL::ComPtr<IDxcBlob> pVertexReflectionData;
-        Microsoft::WRL::ComPtr<IDxcBlob> pPixelReflectionData;
 
-        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pReflection;
+        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pVertexReflection;
+        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pPixelReflection;
 
         bool bPSODirty;
     };
@@ -1000,8 +999,16 @@ namespace ndq
         );
 
         Microsoft::WRL::ComPtr<IDxcBlob> pShader;
+        Microsoft::WRL::ComPtr<IDxcBlob> pReflectionData;
         pResults->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pShader), nullptr);
+        pResults->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(&pReflectionData), nullptr);
+        DxcBuffer ReflectionData{};
+        ReflectionData.Ptr = pReflectionData->GetBufferPointer();
+        ReflectionData.Size = pReflectionData->GetBufferSize();
 
-        return std::shared_ptr<IShader>(new Internal::Shader(shaderType, pShader));
+        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pReflection;
+        pUtils->CreateReflection(&ReflectionData, IID_PPV_ARGS(&pReflection));
+
+        return std::shared_ptr<IShader>(new Internal::Shader(shaderType, pShader, pReflection));
     }
 }
