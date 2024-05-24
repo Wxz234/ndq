@@ -242,6 +242,7 @@ namespace Internal
             if (auto TempShader = dynamic_cast<Shader*>(pShader); pVertexBlob != TempShader->pBlob)
             {
                 pVertexBlob = TempShader->pBlob;
+                pVertexReflection = TempShader->pReflection;
                 mCacheGraphicsPSO.VS = CD3DX12_SHADER_BYTECODE(pVertexBlob->GetBufferPointer(), pVertexBlob->GetBufferSize());
                 bPSODirty = true;
             }
@@ -252,6 +253,7 @@ namespace Internal
             if (auto TempShader = dynamic_cast<Shader*>(pShader); pPixelBlob != TempShader->pBlob)
             {
                 pPixelBlob = TempShader->pBlob;
+                pPixelReflection = TempShader->pReflection;
                 mCacheGraphicsPSO.PS = CD3DX12_SHADER_BYTECODE(pPixelBlob->GetBufferPointer(), pPixelBlob->GetBufferSize());
                 bPSODirty = true;
             }
@@ -264,11 +266,13 @@ namespace Internal
 
         void DrawInstanced(ndq::uint32 VertexCountPerInstance, ndq::uint32 InstanceCount, ndq::uint32 StartVertexLocation, ndq::uint32 StartInstanceLocation)
         {
+            _MakePipeline();
             pList->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation);
         }
 
         void DrawIndexedInstanced(ndq::uint32 IndexCountPerInstance, ndq::uint32 InstanceCount, ndq::uint32 StartIndexLocation, ndq::int32 BaseVertexLocation, ndq::uint32 StartInstanceLocation)
         {
+            _MakePipeline();
             pList->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
         }
 
@@ -312,6 +316,11 @@ namespace Internal
             mCacheGraphicsPSO.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
         }
 
+        void _MakePipeline()
+        {
+            _BuildGraphicsRootSignature();
+        }
+
         bool _CanUse()
         {
             auto TempPtr = dynamic_cast<GraphicsDeviceInterface*>(ndq::GetGraphicsDevice().get());
@@ -321,6 +330,10 @@ namespace Internal
 
         void _BuildGraphicsRootSignature()
         {
+            D3D12_SHADER_DESC VertexDesc = {};
+            D3D12_SHADER_DESC PixelDesc = {};
+            pVertexReflection->GetDesc(&VertexDesc);
+            pPixelReflection->GetDesc(&PixelDesc);
 
         }
 
@@ -961,10 +974,9 @@ namespace ndq
         Microsoft::WRL::ComPtr<IDxcBlobEncoding> pSource = nullptr;
         pUtils->LoadFile(filePath, nullptr, &pSource);
 
-        DxcBuffer Source;
+        DxcBuffer Source{};
         Source.Ptr = pSource->GetBufferPointer();
         Source.Size = pSource->GetBufferSize();
-        Source.Encoding = DXC_CP_ACP;
 
         auto ShaderTypeString = Internal::GetShaderTypeString(shaderType);
 
@@ -1000,7 +1012,8 @@ namespace ndq
 
         Microsoft::WRL::ComPtr<IDxcBlob> pShader;
         Microsoft::WRL::ComPtr<IDxcBlob> pReflectionData;
-        pResults->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pShader), nullptr);
+        Microsoft::WRL::ComPtr<IDxcBlobUtf16> pShaderName;
+        pResults->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pShader), &pShaderName);
         pResults->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(&pReflectionData), nullptr);
         DxcBuffer ReflectionData{};
         ReflectionData.Ptr = pReflectionData->GetBufferPointer();
