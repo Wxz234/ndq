@@ -28,8 +28,21 @@ typedef HRESULT(WINAPI* PfnCreateFactory2)(UINT Flags, REFIID riid, _COM_Outptr_
 
 namespace Internal
 {
+    struct PIPELINE_DESC
+    {
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC mCacheGraphicsPSO;
+
+        Microsoft::WRL::ComPtr<IDxcBlob> pVertexBlob;
+        Microsoft::WRL::ComPtr<IDxcBlob> pPixelBlob;
+
+        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pVertexReflection;
+        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pPixelReflection;
+    };
+
     ID3D12RootSignature* GetRootSignatureByDesc(const D3D12_ROOT_SIGNATURE_DESC2* pDesc)
     {
+        //D3D12_PIPELINE_STATE_DESC
+        //CD3DX12_ROOT_SIGNATURE_DESC
         return nullptr;
     }
 
@@ -235,9 +248,9 @@ namespace Internal
 
         void SetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)
         {
-            if (auto Temp = GetPrimitiveTopologyType(topology); Temp != mCacheGraphicsPSO.PrimitiveTopologyType)
+            if (auto Temp = GetPrimitiveTopologyType(topology); Temp != mPipelineDesc.mCacheGraphicsPSO.PrimitiveTopologyType)
             {
-                mCacheGraphicsPSO.PrimitiveTopologyType = Temp;
+                mPipelineDesc.mCacheGraphicsPSO.PrimitiveTopologyType = Temp;
                 bPSODirty = true;
             }
             pList->IASetPrimitiveTopology(static_cast<D3D12_PRIMITIVE_TOPOLOGY>(topology));
@@ -245,22 +258,22 @@ namespace Internal
 
         void SetVertexShader(ndq::IShader* pShader)
         {
-            if (auto TempShader = dynamic_cast<Shader*>(pShader); pVertexBlob != TempShader->pBlob)
+            if (auto TempShader = dynamic_cast<Shader*>(pShader); mPipelineDesc.pVertexBlob != TempShader->pBlob)
             {
-                pVertexBlob = TempShader->pBlob;
-                pVertexReflection = TempShader->pReflection;
-                mCacheGraphicsPSO.VS = CD3DX12_SHADER_BYTECODE(pVertexBlob->GetBufferPointer(), pVertexBlob->GetBufferSize());
+                mPipelineDesc.pVertexBlob = TempShader->pBlob;
+                mPipelineDesc.pVertexReflection = TempShader->pReflection;
+                mPipelineDesc.mCacheGraphicsPSO.VS = CD3DX12_SHADER_BYTECODE(mPipelineDesc.pVertexBlob->GetBufferPointer(), mPipelineDesc.pVertexBlob->GetBufferSize());
                 bPSODirty = true;
             }
         }
 
         void SetPixelShader(ndq::IShader* pShader)
         {
-            if (auto TempShader = dynamic_cast<Shader*>(pShader); pPixelBlob != TempShader->pBlob)
+            if (auto TempShader = dynamic_cast<Shader*>(pShader); mPipelineDesc.pPixelBlob != TempShader->pBlob)
             {
-                pPixelBlob = TempShader->pBlob;
-                pPixelReflection = TempShader->pReflection;
-                mCacheGraphicsPSO.PS = CD3DX12_SHADER_BYTECODE(pPixelBlob->GetBufferPointer(), pPixelBlob->GetBufferSize());
+                mPipelineDesc.pPixelBlob = TempShader->pBlob;
+                mPipelineDesc.pPixelReflection = TempShader->pReflection;
+                mPipelineDesc.mCacheGraphicsPSO.PS = CD3DX12_SHADER_BYTECODE(mPipelineDesc.pPixelBlob->GetBufferPointer(), mPipelineDesc.pPixelBlob->GetBufferSize());
                 bPSODirty = true;
             }
         }
@@ -294,32 +307,32 @@ namespace Internal
 
         void _InitPSO()
         {
-            mCacheGraphicsPSO = {};
-            mCacheGraphicsPSO.pRootSignature = nullptr;
-            mCacheGraphicsPSO.VS = {};
-            mCacheGraphicsPSO.PS = {};
-            mCacheGraphicsPSO.DS = {};
-            mCacheGraphicsPSO.HS = {};
-            mCacheGraphicsPSO.GS = {};
-            mCacheGraphicsPSO.StreamOutput = {};
-            mCacheGraphicsPSO.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-            mCacheGraphicsPSO.SampleMask = UINT_MAX;
-            mCacheGraphicsPSO.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-            mCacheGraphicsPSO.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-            mCacheGraphicsPSO.InputLayout = { nullptr, 0 };
-            mCacheGraphicsPSO.IBStripCutValue = {};
-            mCacheGraphicsPSO.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
-            mCacheGraphicsPSO.NumRenderTargets = 0;
+            mPipelineDesc.mCacheGraphicsPSO = {};
+            mPipelineDesc.mCacheGraphicsPSO.pRootSignature = nullptr;
+            mPipelineDesc.mCacheGraphicsPSO.VS = {};
+            mPipelineDesc.mCacheGraphicsPSO.PS = {};
+            mPipelineDesc.mCacheGraphicsPSO.DS = {};
+            mPipelineDesc.mCacheGraphicsPSO.HS = {};
+            mPipelineDesc.mCacheGraphicsPSO.GS = {};
+            mPipelineDesc.mCacheGraphicsPSO.StreamOutput = {};
+            mPipelineDesc.mCacheGraphicsPSO.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+            mPipelineDesc.mCacheGraphicsPSO.SampleMask = UINT_MAX;
+            mPipelineDesc.mCacheGraphicsPSO.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+            mPipelineDesc.mCacheGraphicsPSO.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+            mPipelineDesc.mCacheGraphicsPSO.InputLayout = { nullptr, 0 };
+            mPipelineDesc.mCacheGraphicsPSO.IBStripCutValue = {};
+            mPipelineDesc.mCacheGraphicsPSO.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+            mPipelineDesc.mCacheGraphicsPSO.NumRenderTargets = 0;
             for (UINT i = 0;i < 8; ++i)
             {
-                mCacheGraphicsPSO.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
+                mPipelineDesc.mCacheGraphicsPSO.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
             }
-            mCacheGraphicsPSO.DSVFormat = DXGI_FORMAT_UNKNOWN;
-            mCacheGraphicsPSO.SampleDesc.Count = 1;
-            mCacheGraphicsPSO.SampleDesc.Quality = 0;
-            mCacheGraphicsPSO.NodeMask = NDQ_NODE_MASK;
-            mCacheGraphicsPSO.CachedPSO = {};
-            mCacheGraphicsPSO.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+            mPipelineDesc.mCacheGraphicsPSO.DSVFormat = DXGI_FORMAT_UNKNOWN;
+            mPipelineDesc.mCacheGraphicsPSO.SampleDesc.Count = 1;
+            mPipelineDesc.mCacheGraphicsPSO.SampleDesc.Quality = 0;
+            mPipelineDesc.mCacheGraphicsPSO.NodeMask = NDQ_NODE_MASK;
+            mPipelineDesc.mCacheGraphicsPSO.CachedPSO = {};
+            mPipelineDesc.mCacheGraphicsPSO.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
         }
 
         void _MakePipeline()
@@ -336,8 +349,8 @@ namespace Internal
 
         void _BuildGraphicsRootSignature()
         {
-            _ParseShaderDesc(pVertexReflection);
-            _ParseShaderDesc(pPixelReflection);
+            _ParseShaderDesc(mPipelineDesc.pVertexReflection);
+            _ParseShaderDesc(mPipelineDesc.pPixelReflection);
         }
 
         void _ParseShaderDesc(Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pReflection)
@@ -358,15 +371,7 @@ namespace Internal
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator> pAllocator;
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList;
 
-        D3D12_GRAPHICS_PIPELINE_STATE_DESC mCacheGraphicsPSO;
-
-        Microsoft::WRL::ComPtr<IDxcBlob> pVertexBlob;
-        Microsoft::WRL::ComPtr<IDxcBlob> pPixelBlob;
-
-        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pVertexReflection;
-        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pPixelReflection;
-
-        //D3D12_ROOT_PARAMETER1
+        PIPELINE_DESC mPipelineDesc;
 
         bool bPSODirty;
     };
