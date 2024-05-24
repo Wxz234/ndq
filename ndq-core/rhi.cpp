@@ -1,6 +1,7 @@
 #include "ndq/platform.h"
 #include "ndq/rhi.h"
 
+#include <concurrent_unordered_map.h>
 #include <concurrent_vector.h>
 #include <d3d12.h>
 #include <d3d12shader.h>
@@ -27,6 +28,11 @@ typedef HRESULT(WINAPI* PfnCreateFactory2)(UINT Flags, REFIID riid, _COM_Outptr_
 
 namespace Internal
 {
+    ID3D12RootSignature* GetRootSignatureByDesc(const D3D12_ROOT_SIGNATURE_DESC2* pDesc)
+    {
+        return nullptr;
+    }
+
     DXGI_FORMAT GetRawResourceFormat(ndq::NDQ_RESOURCE_FORMAT format)
     {
         DXGI_FORMAT RawFormat;
@@ -330,11 +336,20 @@ namespace Internal
 
         void _BuildGraphicsRootSignature()
         {
-            D3D12_SHADER_DESC VertexDesc = {};
-            D3D12_SHADER_DESC PixelDesc = {};
-            pVertexReflection->GetDesc(&VertexDesc);
-            pPixelReflection->GetDesc(&PixelDesc);
+            _ParseShaderDesc(pVertexReflection);
+            _ParseShaderDesc(pPixelReflection);
+        }
 
+        void _ParseShaderDesc(Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pReflection)
+        {
+            D3D12_SHADER_DESC ShaderDesc;
+            pReflection->GetDesc(&ShaderDesc);
+            for (ndq::uint32 i = 0; i < ShaderDesc.BoundResources; ++i)
+            {
+                D3D12_SHADER_INPUT_BIND_DESC BindDesc;
+                pReflection->GetResourceBindingDesc(i, &BindDesc);
+                
+            }
         }
 
         std::atomic_bool bIsBusy;
@@ -350,6 +365,8 @@ namespace Internal
 
         Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pVertexReflection;
         Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pPixelReflection;
+
+        //D3D12_ROOT_PARAMETER1
 
         bool bPSODirty;
     };
