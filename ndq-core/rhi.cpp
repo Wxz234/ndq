@@ -69,10 +69,27 @@ namespace Internal
         Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pPixelReflection;
     };
 
+    bool operator==(const PIPELINE_DESC& a, const PIPELINE_DESC& b)
+    {
+        if 
+        (
+            a.pVertexBlob == b.pVertexBlob &&
+            a.pPixelBlob == b.pPixelBlob &&
+            a.mCacheGraphicsPSO.PrimitiveTopologyType == b.mCacheGraphicsPSO.PrimitiveTopologyType
+        )
+        {
+            return true;
+        }
+        return false;
+    }
+
+    bool operator!=(const PIPELINE_DESC& a, const PIPELINE_DESC& b)
+    {
+        return !(a == b);
+    }
+
     ID3D12RootSignature* GetRootSignatureByDesc(const D3D12_ROOT_SIGNATURE_DESC2* pDesc)
     {
-        //D3D12_PIPELINE_STATE_DESC
-        //CD3DX12_ROOT_SIGNATURE_DESC
         return nullptr;
     }
 
