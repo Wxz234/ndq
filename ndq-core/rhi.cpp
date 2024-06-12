@@ -187,6 +187,17 @@ namespace Internal
         return Type;
     }
 
+    class RenderTargetView : public ndq::IRenderTargetView
+    {
+        ndq::NDQ_RENDER_TARGET_VIEW_DESC GetDesc() const
+        {
+            return mDesc;
+        }
+
+        ndq::NDQ_RENDER_TARGET_VIEW_DESC mDesc;
+        D3D12_CPU_DESCRIPTOR_HANDLE mHandle;
+    };
+
     class Shader : public ndq::IShader
     {
     public:
@@ -880,6 +891,11 @@ namespace Internal
             std::shared_ptr<ndq::IGraphicsResource> TempPtr = retVal;
             mGPURes.push_back(TempPtr);
             return retVal;
+        }
+
+        std::shared_ptr<ndq::IRenderTargetView> CreateRenderTargetView(ndq::IGraphicsTexture2D* pTexture, const ndq::NDQ_RENDER_TARGET_VIEW_DESC* pDesc)
+        {
+            return std::shared_ptr<ndq::IRenderTargetView>();
         }
 
         void RunGarbageCollection()

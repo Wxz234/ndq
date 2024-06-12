@@ -76,10 +76,30 @@ namespace ndq
         const wchar_t* Value;
     };
 
-    enum class NDQ_RESOURCE_DIMENSION {
+    enum class NDQ_RESOURCE_DIMENSION
+    {
         UNKNOWN = 0,
         BUFFER = 1,
-        TEXTURE2D = 3,
+        TEXTURE2D = 2,
+    };
+
+    struct NDQ_TEX2D_RTV
+    {
+        uint32 MipSlice;
+        uint32 PlaneSlice;
+    };
+
+    struct NDQ_RENDER_TARGET_VIEW_DESC
+    {
+        NDQ_RESOURCE_FORMAT Format;
+        NDQ_RESOURCE_DIMENSION ViewDimension;
+        NDQ_TEX2D_RTV Texture2D;
+    };
+
+    class IRenderTargetView
+    {
+    public:
+        virtual NDQ_RENDER_TARGET_VIEW_DESC GetDesc() const = 0;
     };
 
     class IShader
@@ -133,6 +153,7 @@ namespace ndq
         virtual std::shared_ptr<IGraphicsBuffer> AllocateDefaultBuffer(const NDQ_BUFFER_DESC* pDesc) = 0;
         virtual std::shared_ptr<IGraphicsBuffer> AllocateReadbackBuffer(const NDQ_BUFFER_DESC* pDesc) = 0;
         virtual std::shared_ptr<IGraphicsTexture2D> AllocateTexture2D(const NDQ_TEXTURE2D_DESC* pDesc) = 0;
+        virtual std::shared_ptr<IRenderTargetView> CreateRenderTargetView(IGraphicsTexture2D* pTexture, const NDQ_RENDER_TARGET_VIEW_DESC* pDesc) = 0;
     };
 
     std::shared_ptr<IGraphicsDevice> GetGraphicsDevice();

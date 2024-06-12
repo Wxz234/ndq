@@ -22,10 +22,6 @@ struct App : public ndq::IApplication
     void Update(float t)
     {
         pCmdList->Open();
-        pCmdList->SetVertexShader(pVertexShaderBlob.get());
-        pCmdList->SetPixelShader(pPixelShaderBlob.get());
-        pCmdList->SetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY::TRIANGLELIST);
-        pCmdList->DrawInstanced(3, 1, 0, 0);
         pCmdList->Close();
         pGraphicsDevice->ExecuteCommandList(pCmdList.get());
     }
