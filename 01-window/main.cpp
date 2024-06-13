@@ -22,7 +22,7 @@ struct App : public ndq::IApplication
         ndq::size_type rtvhandle = CurrentRTV->GetHandle();
 
         pCmdList->Open();
-        pCmdList->SetRenderTargets(1, &rtvhandle, nullptr);
+        //pCmdList->SetRenderTargets(1, &rtvhandle, nullptr);
         pCmdList->Close();
         pGraphicsDevice->ExecuteCommandList(pCmdList.get());
     }
