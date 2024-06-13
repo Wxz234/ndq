@@ -148,12 +148,12 @@ namespace ndq
     public:
         virtual void ExecuteCommandList(ICommandList* pList) = 0;
         virtual void Wait(NDQ_COMMAND_LIST_TYPE type) = 0;
-        virtual std::shared_ptr<ICommandList> GetCommandList(NDQ_COMMAND_LIST_TYPE type) = 0;
+        virtual std::shared_ptr<ICommandList> GetCommandList(NDQ_COMMAND_LIST_TYPE type) const = 0;
         virtual std::shared_ptr<IGraphicsBuffer> AllocateUploadBuffer(const NDQ_BUFFER_DESC* pDesc) = 0;
         virtual std::shared_ptr<IGraphicsBuffer> AllocateDefaultBuffer(const NDQ_BUFFER_DESC* pDesc) = 0;
         virtual std::shared_ptr<IGraphicsBuffer> AllocateReadbackBuffer(const NDQ_BUFFER_DESC* pDesc) = 0;
         virtual std::shared_ptr<IGraphicsTexture2D> AllocateTexture2D(const NDQ_TEXTURE2D_DESC* pDesc) = 0;
-        virtual std::shared_ptr<IRenderTargetView> CreateRenderTargetView(IGraphicsTexture2D* pTexture, const NDQ_RENDER_TARGET_VIEW_DESC* pDesc) = 0;
+        virtual std::shared_ptr<IRenderTargetView> GetInternalCurrentRenderTargetView() const = 0;
     };
 
     std::shared_ptr<IGraphicsDevice> GetGraphicsDevice();

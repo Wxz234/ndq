@@ -189,6 +189,9 @@ namespace Internal
 
     class RenderTargetView : public ndq::IRenderTargetView
     {
+    public:
+        RenderTargetView(const ndq::NDQ_RENDER_TARGET_VIEW_DESC* pDesc, D3D12_CPU_DESCRIPTOR_HANDLE handle) : mDesc(*pDesc), mHandle(handle) {}
+
         ndq::NDQ_RENDER_TARGET_VIEW_DESC GetDesc() const
         {
             return mDesc;
@@ -489,8 +492,6 @@ namespace Internal
             }
 
             mStates.resize(NDQ_SWAPCHAIN_COUNT, D3D12_RESOURCE_STATE_PRESENT);
-
-            CreateDefaultDescriptorHeap();
         }
 
         ~GraphicsDevice()
@@ -532,7 +533,8 @@ namespace Internal
                 mComputeLists.clear();
 
                 mGPURes.clear();
-                pDefaultDescriptorHeap.Reset();
+
+                mInternalRTV.clear();
 
                 FreeLibrary(mD3D12);
                 FreeLibrary(mDXGI);
@@ -655,11 +657,24 @@ namespace Internal
             auto RTVDescriptorSize = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
             for (ndq::uint32 n = 0; n < NDQ_SWAPCHAIN_COUNT; ++n)
             {
+                D3D12_RENDER_TARGET_VIEW_DESC desc{};
+                desc.Format = NDQ_SWAPCHAIN_FORMAT;
+                desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+                desc.Texture2D.MipSlice = 0;
+                desc.Texture2D.PlaneSlice = 0;
                 pSwapChain->GetBuffer(n, IID_PPV_ARGS(pRT[n].ReleaseAndGetAddressOf()));
-                pDevice->CreateRenderTargetView(pRT[n].Get(), nullptr, CpuHandle);
+                pDevice->CreateRenderTargetView(pRT[n].Get(), &desc, CpuHandle);
                 CpuHandle.ptr += RTVDescriptorSize;
 
                 _CreateInternalGraphicsTexture2D(pRT[n], n);
+
+                ndq::NDQ_RENDER_TARGET_VIEW_DESC ndqDesc{};
+                ndqDesc.Format = GetResourceFormat(NDQ_SWAPCHAIN_FORMAT);
+                ndqDesc.ViewDimension = ndq::NDQ_RESOURCE_DIMENSION::TEXTURE2D;
+                ndqDesc.Texture2D.MipSlice = 0;
+                ndqDesc.Texture2D.PlaneSlice = 0;
+                std::shared_ptr<RenderTargetView> rtvPrt(new RenderTargetView(&ndqDesc, CpuHandle));
+                mInternalRTV.emplace_back(rtvPrt);
             }
         }
 
@@ -681,7 +696,7 @@ namespace Internal
             return Queue;
         }
 
-        std::shared_ptr<ndq::ICommandList> GetCommandList(ndq::NDQ_COMMAND_LIST_TYPE type)
+        std::shared_ptr<ndq::ICommandList> GetCommandList(ndq::NDQ_COMMAND_LIST_TYPE type) const
         {
             ndq::uint64 CurrentValue;
             ndq::size_type ListCount;
@@ -739,7 +754,7 @@ namespace Internal
             return TempPtr;
         }
 
-        std::shared_ptr<ndq::ICommandList> CreateList(ndq::NDQ_COMMAND_LIST_TYPE type)
+        std::shared_ptr<ndq::ICommandList> CreateList(ndq::NDQ_COMMAND_LIST_TYPE type) const
         {
             ID3D12Device4* TempDevice = reinterpret_cast<ID3D12Device4*>(GetRawDevice());
             std::shared_ptr<CommandList> TempPtr;
@@ -893,17 +908,17 @@ namespace Internal
             return retVal;
         }
 
-        std::shared_ptr<ndq::IRenderTargetView> CreateRenderTargetView(ndq::IGraphicsTexture2D* pTexture, const ndq::NDQ_RENDER_TARGET_VIEW_DESC* pDesc)
+        std::shared_ptr<ndq::IRenderTargetView> GetInternalCurrentRenderTargetView() const
         {
-            return std::shared_ptr<ndq::IRenderTargetView>();
+            return mInternalRTV[mFrameIndex];
         }
 
         void RunGarbageCollection()
         {
-            static ndq::uint32 flushTime = 0;
-            ++flushTime;
+            static ndq::uint32 flushCount = 0;
+            ++flushCount;
 
-            if(flushTime >= 500)
+            if(flushCount >= 500)
             {
                 ndq::size_type count = mGPURes.size();
                 for (ndq::size_type i = 0; i < count; ++i)
@@ -915,7 +930,7 @@ namespace Internal
                 }
                 ++mNeedReleaseGPUResCount;
 
-                flushTime = 0;
+                flushCount = 0;
             }
 
             if (mNeedReleaseGPUResCount >= 3000)
@@ -934,16 +949,6 @@ namespace Internal
                 TempGPURes.clear();
                 mNeedReleaseGPUResCount = 0;
             }
-        }
-
-        void CreateDefaultDescriptorHeap()
-        {
-            D3D12_DESCRIPTOR_HEAP_DESC Desc{};
-            Desc.NodeMask = NDQ_NODE_MASK;
-            Desc.NumDescriptors = 8;
-            Desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-            Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-            pDevice->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(&pDefaultDescriptorHeap));
         }
 
         void _CreateInternalGraphicsTexture2D(Microsoft::WRL::ComPtr<ID3D12Resource> pRes, ndq::uint32 index)
@@ -990,14 +995,14 @@ namespace Internal
 
         bool bIsReleased = false;
 
-        concurrency::concurrent_vector<std::shared_ptr<CommandList>> mGraphicsLists;
-        concurrency::concurrent_vector<std::shared_ptr<CommandList>> mCopyLists;
-        concurrency::concurrent_vector<std::shared_ptr<CommandList>> mComputeLists;
+        mutable concurrency::concurrent_vector<std::shared_ptr<CommandList>> mGraphicsLists;
+        mutable concurrency::concurrent_vector<std::shared_ptr<CommandList>> mCopyLists;
+        mutable concurrency::concurrent_vector<std::shared_ptr<CommandList>> mComputeLists;
 
         concurrency::concurrent_vector<std::shared_ptr<ndq::IGraphicsResource>> mGPURes;
         std::atomic_size_t mNeedReleaseGPUResCount = 0;
 
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> pDefaultDescriptorHeap;
+        std::vector<std::shared_ptr<RenderTargetView>> mInternalRTV;
 
         HMODULE mD3D12{};
         HMODULE mDXGI{};
