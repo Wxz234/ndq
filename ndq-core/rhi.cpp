@@ -201,6 +201,22 @@ namespace Internal
         D3D12_CPU_DESCRIPTOR_HANDLE mHandle;
     };
 
+    class DepthStencilView : public ndq::IDepthStencilView
+    {
+    public:
+        DepthStencilView(const ndq::NDQ_DEPTH_STENCIL_VIEW_DESC* pDesc, D3D12_CPU_DESCRIPTOR_HANDLE handle) : mDesc(*pDesc), mHandle(handle) {}
+
+        ndq::NDQ_DEPTH_STENCIL_VIEW_DESC GetDesc() const
+        {
+            return mDesc;
+        }
+
+        ndq::NDQ_DEPTH_STENCIL_VIEW_DESC mDesc;
+        D3D12_CPU_DESCRIPTOR_HANDLE mHandle;
+    };
+
+
+
     class Shader : public ndq::IShader
     {
     public:
