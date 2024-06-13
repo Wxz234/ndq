@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ndq/platform.h"
+#include "ndq/rhi_format.h"
 
 namespace ndq
 {
