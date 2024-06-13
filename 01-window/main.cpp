@@ -18,7 +18,11 @@ struct App : public ndq::IApplication
 
     void Update(float t)
     {
+        auto CurrentRTV = pGraphicsDevice->GetInternalRenderTargetView(pGraphicsDevice->GetCurrentFrameIndex());
+        ndq::size_type rtvhandle = CurrentRTV->GetHandle();
+
         pCmdList->Open();
+        pCmdList->SetRenderTargets(1, &rtvhandle, nullptr);
         pCmdList->Close();
         pGraphicsDevice->ExecuteCommandList(pCmdList.get());
     }
