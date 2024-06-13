@@ -25,6 +25,7 @@ namespace ndq
     {
     public:
         virtual void Open() = 0;
+        virtual void SetRenderTargets(uint32 numRenderTargetDescriptors, const size_type* pRenderTargetDescriptors, const size_type* pDepthStencilDescriptor) = 0;
         virtual void SetPrimitiveTopology(NDQ_PRIMITIVE_TOPOLOGY topology) = 0;
         virtual void SetVertexShader(IShader* pShader) = 0;
         virtual void SetPixelShader(IShader* pShader) = 0;

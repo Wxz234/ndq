@@ -101,6 +101,9 @@ namespace Internal
         case ndq::NDQ_RESOURCE_FORMAT::R8G8B8A8_UNORM:
             RawFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
             break;
+        case ndq::NDQ_RESOURCE_FORMAT::D24_UNORM_S8_UINT:
+            RawFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            break;
         default:
             RawFormat = DXGI_FORMAT_UNKNOWN;
             break;
@@ -116,6 +119,9 @@ namespace Internal
         {
         case DXGI_FORMAT_R8G8B8A8_UNORM:
             Format = ndq::NDQ_RESOURCE_FORMAT::R8G8B8A8_UNORM;
+            break;
+        case DXGI_FORMAT_D24_UNORM_S8_UINT:
+            Format = ndq::NDQ_RESOURCE_FORMAT::D24_UNORM_S8_UINT;
             break;
         default:
             Format = ndq::NDQ_RESOURCE_FORMAT::UNKNOWN;
@@ -197,6 +203,11 @@ namespace Internal
             return mDesc;
         }
 
+        ndq::size_type GetHandle() const
+        {
+            return mHandle.ptr;
+        }
+
         ndq::NDQ_RENDER_TARGET_VIEW_DESC mDesc;
         D3D12_CPU_DESCRIPTOR_HANDLE mHandle;
     };
@@ -209,6 +220,11 @@ namespace Internal
         ndq::NDQ_DEPTH_STENCIL_VIEW_DESC GetDesc() const
         {
             return mDesc;
+        }
+
+        ndq::size_type GetHandle() const
+        {
+            return mHandle.ptr;
         }
 
         ndq::NDQ_DEPTH_STENCIL_VIEW_DESC mDesc;
@@ -320,6 +336,27 @@ namespace Internal
 
             pAllocator->Reset();
             pList->Reset(pAllocator.Get(), nullptr);
+        }
+
+        void SetRenderTargets(ndq::uint32 numRenderTargetDescriptors, const ndq::size_type* pRenderTargetDescriptors, const ndq::size_type* pDepthStencilDescriptor)
+        {
+            std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> TempHandles;
+            for (ndq::uint32 i = 0; i < numRenderTargetDescriptors; ++i)
+            {
+                D3D12_CPU_DESCRIPTOR_HANDLE Handle;
+                Handle.ptr = pRenderTargetDescriptors[i];
+                TempHandles.emplace_back(Handle);
+            }
+            if (pDepthStencilDescriptor)
+            {
+                D3D12_CPU_DESCRIPTOR_HANDLE DepthHandle;
+                DepthHandle.ptr = *pDepthStencilDescriptor;
+                pList->OMSetRenderTargets(numRenderTargetDescriptors, TempHandles.data(), FALSE, &DepthHandle);
+            }
+            else
+            {
+                pList->OMSetRenderTargets(numRenderTargetDescriptors, TempHandles.data(), FALSE, nullptr);
+            }
         }
 
         void SetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)
@@ -638,13 +675,6 @@ namespace Internal
             pFence->SetEventOnCompletion(FenceValue, EventHandle);
             WaitForSingleObject(EventHandle, INFINITE);
             CloseHandle(EventHandle);
-        }
-
-        D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const
-        {
-            auto handle = pRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-            handle.ptr += (mRTVHandle * mFrameIndex);
-            return handle;
         }
 
         void MoveToNextFrame()

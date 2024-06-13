@@ -30,6 +30,7 @@ namespace ndq
     {
         NDQ_RESOURCE_FLAG_NONE = 0,
         NDQ_RESOURCE_FLAG_ALLOW_RENDER_TARGET = 0x1,
+        NDQ_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL = 0x2,
     };
 
     struct NDQ_BUFFER_DESC

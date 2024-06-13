@@ -6,6 +6,12 @@
 
 namespace ndq
 {
+    class IView
+    {
+    public:
+        virtual size_type GetHandle() const = 0;
+    };
+
     struct NDQ_TEX2D_RTV
     {
         uint32 MipSlice;
@@ -19,7 +25,7 @@ namespace ndq
         NDQ_TEX2D_RTV Texture2D;
     };
 
-    class IRenderTargetView
+    class IRenderTargetView : public IView
     {
     public:
         virtual NDQ_RENDER_TARGET_VIEW_DESC GetDesc() const = 0;
@@ -45,7 +51,7 @@ namespace ndq
         NDQ_TEX2D_DSV Texture2D;
     };
 
-    class IDepthStencilView
+    class IDepthStencilView : public IView
     {
     public:
         virtual NDQ_DEPTH_STENCIL_VIEW_DESC GetDesc() const = 0;
