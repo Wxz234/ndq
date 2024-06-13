@@ -337,6 +337,11 @@ namespace Internal
             pList->Reset(pAllocator.Get(), nullptr);
         }
 
+        void ResourceBarrier(ndq::IGraphicsResource* pRes, ndq::NDQ_RESOURCE_STATE brfore, ndq::NDQ_RESOURCE_STATE after)
+        {
+            //CD3DX12_RESOURCE_BARRIER barrier(pRes->);
+        }
+
         void SetRenderTargets(ndq::uint32 numRenderTargetDescriptors, const ndq::size_type* pRenderTargetDescriptors, const ndq::size_type* pDepthStencilDescriptor)
         {
             std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> TempHandles;
