@@ -1,7 +1,6 @@
 #include "ndq/platform.h"
 #include "ndq/rhi.h"
 
-#include <concurrent_unordered_map.h>
 #include <concurrent_vector.h>
 #include <d3d12.h>
 #include <d3d12shader.h>
@@ -347,15 +346,32 @@ namespace Internal
                 Handle.ptr = pRenderTargetDescriptors[i];
                 TempHandles.emplace_back(Handle);
             }
-            if (pDepthStencilDescriptor)
+
+            if (TempHandles.empty())
             {
-                D3D12_CPU_DESCRIPTOR_HANDLE DepthHandle;
-                DepthHandle.ptr = *pDepthStencilDescriptor;
-                pList->OMSetRenderTargets(numRenderTargetDescriptors, TempHandles.data(), FALSE, &DepthHandle);
+                if (pDepthStencilDescriptor)
+                {
+                    D3D12_CPU_DESCRIPTOR_HANDLE DepthHandle;
+                    DepthHandle.ptr = *pDepthStencilDescriptor;
+                    pList->OMSetRenderTargets(0, nullptr, FALSE, &DepthHandle);
+                }
+                else
+                {
+                    pList->OMSetRenderTargets(0, nullptr, FALSE, nullptr);
+                }
             }
             else
             {
-                pList->OMSetRenderTargets(numRenderTargetDescriptors, TempHandles.data(), FALSE, nullptr);
+                if (pDepthStencilDescriptor)
+                {
+                    D3D12_CPU_DESCRIPTOR_HANDLE DepthHandle;
+                    DepthHandle.ptr = *pDepthStencilDescriptor;
+                    pList->OMSetRenderTargets(numRenderTargetDescriptors, TempHandles.data(), FALSE, &DepthHandle);
+                }
+                else
+                {
+                    pList->OMSetRenderTargets(numRenderTargetDescriptors, TempHandles.data(), FALSE, nullptr);
+                }
             }
         }
 
