@@ -908,9 +908,14 @@ namespace Internal
             return retVal;
         }
 
-        std::shared_ptr<ndq::IRenderTargetView> GetInternalCurrentRenderTargetView() const
+        ndq::uint32 GetCurrentFrameIndex() const
         {
-            return mInternalRTV[mFrameIndex];
+            return mFrameIndex;
+        }
+
+        std::shared_ptr<ndq::IRenderTargetView> GetInternalRenderTargetView(ndq::uint32 index) const
+        {
+            return mInternalRTV[index];
         }
 
         void RunGarbageCollection()

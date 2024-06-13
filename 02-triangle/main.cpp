@@ -18,7 +18,6 @@ struct App : public ndq::IApplication
         pCmdList = pGraphicsDevice->GetCommandList(ndq::NDQ_COMMAND_LIST_TYPE::GRAPHICS);
     }
 
-    void Finalize() {}
     void Update(float t)
     {
         pCmdList->Open();

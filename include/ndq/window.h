@@ -9,9 +9,9 @@ namespace ndq
     public:
         int Run();
 
-        virtual void Initialize() = 0;
-        virtual void Finalize() = 0;
-        virtual void Update(float t) = 0;
+        virtual void Initialize() {}
+        virtual void Finalize() {}
+        virtual void Update(float t) {}
 
         uint32 Width = 800;
         uint32 Height = 600;
