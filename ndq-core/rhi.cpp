@@ -289,14 +289,14 @@ namespace Internal
             pResource->Unmap(0, nullptr);
         }
 
-        ndq::NDQ_RESOURCE_DIMENSION GetType() const
-        {
-            return ndq::NDQ_RESOURCE_DIMENSION::BUFFER;
-        }
-
         ndq::NDQ_BUFFER_DESC GetDesc() const
         {
             return mDesc;
+        }
+
+        void* GetRawPtr() const
+        {
+            return pResource.Get();
         }
 
         Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
@@ -307,8 +307,8 @@ namespace Internal
     {
     public:
         GraphicsTexture2D(Microsoft::WRL::ComPtr<ID3D12Resource> pResource,const ndq::NDQ_TEXTURE2D_DESC* pDesc) : pResource(pResource), mDesc(*pDesc) {}
-        ndq::NDQ_RESOURCE_DIMENSION GetType() const { return ndq::NDQ_RESOURCE_DIMENSION::TEXTURE2D; }
         ndq::NDQ_TEXTURE2D_DESC GetDesc() const { return mDesc; }
+        void* GetRawPtr() const { return pResource.Get(); }
         Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
         ndq::NDQ_TEXTURE2D_DESC mDesc;
     };
@@ -339,7 +339,7 @@ namespace Internal
 
         void ResourceBarrier(ndq::IGraphicsResource* pRes, ndq::NDQ_RESOURCE_STATE brfore, ndq::NDQ_RESOURCE_STATE after)
         {
-            //CD3DX12_RESOURCE_BARRIER barrier(pRes->);
+            auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(reinterpret_cast<ID3D12Resource*> (pRes->GetRawPtr()), GetRawResourceState(brfore), GetRawResourceState(after));
         }
 
         void SetRenderTargets(ndq::uint32 numRenderTargetDescriptors, const ndq::size_type* pRenderTargetDescriptors, const ndq::size_type* pDepthStencilDescriptor)
@@ -352,32 +352,20 @@ namespace Internal
                 TempHandles.emplace_back(Handle);
             }
 
-            if (TempHandles.empty())
+            D3D12_CPU_DESCRIPTOR_HANDLE* pDepthHandle = nullptr;
+            D3D12_CPU_DESCRIPTOR_HANDLE DepthHandle;
+
+            if (pDepthStencilDescriptor)
             {
-                if (pDepthStencilDescriptor)
-                {
-                    D3D12_CPU_DESCRIPTOR_HANDLE DepthHandle;
-                    DepthHandle.ptr = *pDepthStencilDescriptor;
-                    pList->OMSetRenderTargets(0, nullptr, FALSE, &DepthHandle);
-                }
-                else
-                {
-                    pList->OMSetRenderTargets(0, nullptr, FALSE, nullptr);
-                }
+                DepthHandle.ptr = *pDepthStencilDescriptor;
+                pDepthHandle = &DepthHandle;
             }
-            else
-            {
-                if (pDepthStencilDescriptor)
-                {
-                    D3D12_CPU_DESCRIPTOR_HANDLE DepthHandle;
-                    DepthHandle.ptr = *pDepthStencilDescriptor;
-                    pList->OMSetRenderTargets(numRenderTargetDescriptors, TempHandles.data(), FALSE, &DepthHandle);
-                }
-                else
-                {
-                    pList->OMSetRenderTargets(numRenderTargetDescriptors, TempHandles.data(), FALSE, nullptr);
-                }
-            }
+
+            pList->OMSetRenderTargets(
+                numRenderTargetDescriptors,
+                TempHandles.empty() ? nullptr : TempHandles.data(),
+                FALSE,
+                pDepthHandle);
         }
 
         void SetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)
@@ -561,8 +549,6 @@ namespace Internal
 
                 pDevice->CreateFence(mComputeFenceValue++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pComputeFence));
                 mComputeEvent.Attach(CreateEventW(nullptr, FALSE, FALSE, nullptr));
-
-                mRTVHandle = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
             }
 
             mStates.resize(NDQ_SWAPCHAIN_COUNT, D3D12_RESOURCE_STATE_PRESENT);
@@ -731,9 +717,6 @@ namespace Internal
                 desc.Texture2D.PlaneSlice = 0;
                 pSwapChain->GetBuffer(n, IID_PPV_ARGS(pRT[n].ReleaseAndGetAddressOf()));
                 pDevice->CreateRenderTargetView(pRT[n].Get(), &desc, CpuHandle);
-                CpuHandle.ptr += RTVDescriptorSize;
-
-                _CreateInternalGraphicsTexture2D(pRT[n], n);
 
                 ndq::NDQ_RENDER_TARGET_VIEW_DESC ndqDesc{};
                 ndqDesc.Format = GetResourceFormat(NDQ_SWAPCHAIN_FORMAT);
@@ -742,6 +725,10 @@ namespace Internal
                 ndqDesc.Texture2D.PlaneSlice = 0;
                 std::shared_ptr<RenderTargetView> rtvPrt(new RenderTargetView(&ndqDesc, CpuHandle));
                 mInternalRTV.emplace_back(rtvPrt);
+
+                CpuHandle.ptr += RTVDescriptorSize;
+
+                _CreateInternalGraphicsTexture2D(pRT[n], n);
             }
         }
 
@@ -985,6 +972,11 @@ namespace Internal
             return mInternalRTV[index];
         }
 
+        std::shared_ptr<ndq::IGraphicsTexture2D> GetInternalSwapchainTexture2D(ndq::uint32 index) const
+        {
+            return pRTObject[index];
+        }
+
         void RunGarbageCollection()
         {
             static ndq::uint32 flushCount = 0;
@@ -1037,7 +1029,6 @@ namespace Internal
 
         HWND mHwnd = NULL;
 
-        ndq::uint32 mRTVHandle = 0;
         Microsoft::WRL::ComPtr<ID3D12Device4> pDevice;
         Microsoft::WRL::ComPtr<IDXGISwapChain4> pSwapChain;
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> pGraphicsQueue;
@@ -1047,7 +1038,7 @@ namespace Internal
         Microsoft::WRL::ComPtr<ID3D12Resource> pRT[NDQ_SWAPCHAIN_COUNT];
         std::vector<D3D12_RESOURCE_STATES> mStates;
 
-        std::unique_ptr<GraphicsTexture2D> pRTObject[NDQ_SWAPCHAIN_COUNT];
+        std::shared_ptr<ndq::IGraphicsTexture2D> pRTObject[NDQ_SWAPCHAIN_COUNT];
 
         ndq::uint32 mFrameIndex = 0;
 

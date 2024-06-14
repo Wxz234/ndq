@@ -52,7 +52,7 @@ namespace ndq
     class IGraphicsResource
     {
     public:
-        virtual NDQ_RESOURCE_DIMENSION GetType() const = 0;
+        virtual void* GetRawPtr() const = 0;
     };
 
     class IGraphicsBuffer : public IGraphicsResource

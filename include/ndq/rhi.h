@@ -22,6 +22,7 @@ namespace ndq
         virtual std::shared_ptr<IGraphicsBuffer> AllocateReadbackBuffer(const NDQ_BUFFER_DESC* pDesc) = 0;
         virtual std::shared_ptr<IGraphicsTexture2D> AllocateTexture2D(const NDQ_TEXTURE2D_DESC* pDesc) = 0;
         virtual std::shared_ptr<IRenderTargetView> GetInternalRenderTargetView(uint32 index) const = 0;
+        virtual std::shared_ptr<IGraphicsTexture2D> GetInternalSwapchainTexture2D(uint32 index) const = 0;
         virtual uint32 GetCurrentFrameIndex() const = 0;
     };
 

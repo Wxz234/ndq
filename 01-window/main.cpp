@@ -18,11 +18,16 @@ struct App : public ndq::IApplication
 
     void Update(float t)
     {
-        auto CurrentRTV = pGraphicsDevice->GetInternalRenderTargetView(pGraphicsDevice->GetCurrentFrameIndex());
-        ndq::size_type rtvhandle = CurrentRTV->GetHandle();
+        auto CurrentIndex = pGraphicsDevice->GetCurrentFrameIndex();
+        auto CurrentRTV = pGraphicsDevice->GetInternalRenderTargetView(CurrentIndex);
+        auto rtvhandle = CurrentRTV->GetHandle();
+
+        auto CurrentTexture = pGraphicsDevice->GetInternalSwapchainTexture2D(CurrentIndex);
 
         pCmdList->Open();
-        //pCmdList->SetRenderTargets(1, &rtvhandle, nullptr);
+        //pCmdList->ResourceBarrier(CurrentTexture.get(), ndq::NDQ_RESOURCE_STATE::COMMON, ndq::NDQ_RESOURCE_STATE::RENDER_TARGET);
+        pCmdList->SetRenderTargets(1, &rtvhandle, nullptr);
+        //pCmdList->ResourceBarrier(CurrentTexture.get(), ndq::NDQ_RESOURCE_STATE::RENDER_TARGET, ndq::NDQ_RESOURCE_STATE::COMMON);
         pCmdList->Close();
         pGraphicsDevice->ExecuteCommandList(pCmdList.get());
     }
