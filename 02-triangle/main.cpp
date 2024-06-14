@@ -3,6 +3,8 @@
 #include "ndq/rhi.h"
 #include "ndq/window.h"
 
+using namespace ndq;
+
 struct App : public ndq::IApplication
 {
     App()
@@ -12,23 +14,29 @@ struct App : public ndq::IApplication
 
     void Initialize()
     {
-        pVertexShaderBlob = ndq::CompileShaderFromFile(L"vertex.hlsl", ndq::NDQ_SHADER_TYPE::VERTEX, L"main", nullptr, 0);
-        pPixelShaderBlob = ndq::CompileShaderFromFile(L"pixel.hlsl", ndq::NDQ_SHADER_TYPE::PIXEL, L"main", nullptr, 0);
         pGraphicsDevice = ndq::GetGraphicsDevice();
-        pCmdList = pGraphicsDevice->GetCommandList(ndq::NDQ_COMMAND_LIST_TYPE::GRAPHICS);
+        pCmdList = pGraphicsDevice->GetCommandList(NDQ_COMMAND_LIST_TYPE::GRAPHICS);
     }
 
     void Update(float t)
     {
+        auto CurrentIndex = pGraphicsDevice->GetCurrentFrameIndex();
+        auto CurrentRTV = pGraphicsDevice->GetInternalRenderTargetView(CurrentIndex);
+        auto Rtvhandle = CurrentRTV->GetHandle();
+        auto CurrentTexture = pGraphicsDevice->GetInternalSwapchainTexture2D(CurrentIndex);
+
         pCmdList->Open();
+        pCmdList->SetRenderTargets(1, &Rtvhandle, nullptr);
+        pCmdList->ResourceBarrier(CurrentTexture.get(), NDQ_RESOURCE_STATE::PRESENT, NDQ_RESOURCE_STATE::RENDER_TARGET);
+        float Color[4] = { 1.0f, 0.3f, 0.6f, 1.0f };
+        pCmdList->ClearRenderTargetView(Rtvhandle, Color);
+        pCmdList->ResourceBarrier(CurrentTexture.get(), NDQ_RESOURCE_STATE::RENDER_TARGET, NDQ_RESOURCE_STATE::PRESENT);
         pCmdList->Close();
         pGraphicsDevice->ExecuteCommandList(pCmdList.get());
     }
 
     std::shared_ptr<ndq::IGraphicsDevice> pGraphicsDevice;
     std::shared_ptr<ndq::ICommandList> pCmdList;
-    std::shared_ptr<ndq::IShader> pVertexShaderBlob;
-    std::shared_ptr<ndq::IShader> pPixelShaderBlob;
 };
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)

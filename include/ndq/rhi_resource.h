@@ -15,9 +15,11 @@ namespace ndq
     enum class NDQ_RESOURCE_STATE
     {
         COMMON,
+        PRESENT,
         RENDER_TARGET,
-        READ,
+        UNIVERSAL_READ,
         COPY_DEST,
+        COPY_SOURCE,
     };
 
     enum class NDQ_RESOURCE_HEAP_TYPE

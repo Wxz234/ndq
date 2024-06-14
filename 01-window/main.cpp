@@ -3,6 +3,8 @@
 #include "ndq/rhi.h"
 #include "ndq/window.h"
 
+using namespace ndq;
+
 struct App : public ndq::IApplication
 {
     App()
@@ -13,21 +15,22 @@ struct App : public ndq::IApplication
     void Initialize()
     {
         pGraphicsDevice = ndq::GetGraphicsDevice();
-        pCmdList = pGraphicsDevice->GetCommandList(ndq::NDQ_COMMAND_LIST_TYPE::GRAPHICS);
+        pCmdList = pGraphicsDevice->GetCommandList(NDQ_COMMAND_LIST_TYPE::GRAPHICS);
     }
 
     void Update(float t)
     {
         auto CurrentIndex = pGraphicsDevice->GetCurrentFrameIndex();
         auto CurrentRTV = pGraphicsDevice->GetInternalRenderTargetView(CurrentIndex);
-        auto rtvhandle = CurrentRTV->GetHandle();
-
+        auto Rtvhandle = CurrentRTV->GetHandle();
         auto CurrentTexture = pGraphicsDevice->GetInternalSwapchainTexture2D(CurrentIndex);
 
         pCmdList->Open();
-        //pCmdList->ResourceBarrier(CurrentTexture.get(), ndq::NDQ_RESOURCE_STATE::COMMON, ndq::NDQ_RESOURCE_STATE::RENDER_TARGET);
-        pCmdList->SetRenderTargets(1, &rtvhandle, nullptr);
-        //pCmdList->ResourceBarrier(CurrentTexture.get(), ndq::NDQ_RESOURCE_STATE::RENDER_TARGET, ndq::NDQ_RESOURCE_STATE::COMMON);
+        pCmdList->SetRenderTargets(1, &Rtvhandle, nullptr);
+        pCmdList->ResourceBarrier(CurrentTexture.get(), NDQ_RESOURCE_STATE::PRESENT, NDQ_RESOURCE_STATE::RENDER_TARGET);
+        float Color[4] = { 1.0f, 0.3f, 0.6f, 1.0f };
+        pCmdList->ClearRenderTargetView(Rtvhandle, Color);
+        pCmdList->ResourceBarrier(CurrentTexture.get(), NDQ_RESOURCE_STATE::RENDER_TARGET, NDQ_RESOURCE_STATE::PRESENT);
         pCmdList->Close();
         pGraphicsDevice->ExecuteCommandList(pCmdList.get());
     }

@@ -28,6 +28,7 @@ namespace ndq
         virtual void Open() = 0;
         virtual void ResourceBarrier(IGraphicsResource* pRes, NDQ_RESOURCE_STATE brfore, NDQ_RESOURCE_STATE after) = 0;
         virtual void SetRenderTargets(uint32 numRenderTargetDescriptors, const size_type* pRenderTargetDescriptors, const size_type* pDepthStencilDescriptor) = 0;
+        virtual void ClearRenderTargetView(size_type rtv, const float colorRGBA[4]) = 0;
         virtual void SetPrimitiveTopology(NDQ_PRIMITIVE_TOPOLOGY topology) = 0;
         virtual void SetVertexShader(IShader* pShader) = 0;
         virtual void SetPixelShader(IShader* pShader) = 0;

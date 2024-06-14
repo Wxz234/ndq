@@ -137,14 +137,20 @@ namespace Internal
         case ndq::NDQ_RESOURCE_STATE::COMMON:
             State = D3D12_RESOURCE_STATE_COMMON;
             break;
+        case ndq::NDQ_RESOURCE_STATE::PRESENT:
+            State = D3D12_RESOURCE_STATE_PRESENT;
+            break;
         case ndq::NDQ_RESOURCE_STATE::RENDER_TARGET:
             State = D3D12_RESOURCE_STATE_RENDER_TARGET;
             break;
-        case ndq::NDQ_RESOURCE_STATE::READ:
+        case ndq::NDQ_RESOURCE_STATE::UNIVERSAL_READ:
             State = D3D12_RESOURCE_STATE_GENERIC_READ;
             break;
         case ndq::NDQ_RESOURCE_STATE::COPY_DEST:
             State = D3D12_RESOURCE_STATE_COPY_DEST;
+            break;
+        case ndq::NDQ_RESOURCE_STATE::COPY_SOURCE:
+            State = D3D12_RESOURCE_STATE_COPY_SOURCE;
             break;
         }
         return State;
@@ -340,6 +346,14 @@ namespace Internal
         void ResourceBarrier(ndq::IGraphicsResource* pRes, ndq::NDQ_RESOURCE_STATE brfore, ndq::NDQ_RESOURCE_STATE after)
         {
             auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(reinterpret_cast<ID3D12Resource*> (pRes->GetRawPtr()), GetRawResourceState(brfore), GetRawResourceState(after));
+            pList->ResourceBarrier(1, &barrier);
+        }
+
+        void ClearRenderTargetView(ndq::size_type rtv, const float colorRGBA[4])
+        {
+            D3D12_CPU_DESCRIPTOR_HANDLE Handle;
+            Handle.ptr = rtv;
+            pList->ClearRenderTargetView(Handle, colorRGBA, 0, nullptr);
         }
 
         void SetRenderTargets(ndq::uint32 numRenderTargetDescriptors, const ndq::size_type* pRenderTargetDescriptors, const ndq::size_type* pDepthStencilDescriptor)
@@ -860,7 +874,7 @@ namespace Internal
             Prop.CreationNodeMask = 1;
             Prop.VisibleNodeMask = 1;
             Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
-            pDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::READ), nullptr, IID_PPV_ARGS(&pResource));
+            pDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::UNIVERSAL_READ), nullptr, IID_PPV_ARGS(&pResource));
 
             auto* RawPtr = new GraphicsBuffer(pResource, pDesc);
             std::shared_ptr<ndq::IGraphicsBuffer> retVal(RawPtr);
