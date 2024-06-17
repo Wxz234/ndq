@@ -16,6 +16,8 @@ struct App : public IApplication
     {
         pGraphicsDevice = GetGraphicsDevice();
         pCmdList = pGraphicsDevice->GetCommandList(NDQ_COMMAND_LIST_TYPE::GRAPHICS);
+        pVertexShader = CompileShaderFromFile(L"vertex.hlsl", NDQ_SHADER_TYPE::VERTEX, L"main", nullptr, 0);
+        pPixelShader = CompileShaderFromFile(L"pixel.hlsl", NDQ_SHADER_TYPE::PIXEL, L"main", nullptr, 0);
     }
 
     void Update(float t)
@@ -27,6 +29,8 @@ struct App : public IApplication
 
         pCmdList->Open();
         pCmdList->SetRenderTargets(1, CurrentRTVArray, nullptr);
+        pCmdList->SetVertexShader(pVertexShader.get());
+        pCmdList->SetPixelShader(pPixelShader.get());
         pCmdList->ResourceBarrier(CurrentTexture.get(), NDQ_RESOURCE_STATE::PRESENT, NDQ_RESOURCE_STATE::RENDER_TARGET);
         float Color[4] = { 1.0f, 0.3f, 0.6f, 1.0f };
         pCmdList->ClearRenderTargetView(CurrentRTV.get(), Color);

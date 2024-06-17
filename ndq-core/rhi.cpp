@@ -27,70 +27,7 @@ typedef HRESULT(WINAPI* PfnCreateFactory2)(UINT Flags, REFIID riid, _COM_Outptr_
 
 namespace Internal
 {
-    struct PIPELINE_DESC
-    {
-        PIPELINE_DESC()
-        {
-            mCacheGraphicsPSO = {};
-            mCacheGraphicsPSO.pRootSignature = nullptr;
-            mCacheGraphicsPSO.VS = {};
-            mCacheGraphicsPSO.PS = {};
-            mCacheGraphicsPSO.DS = {};
-            mCacheGraphicsPSO.HS = {};
-            mCacheGraphicsPSO.GS = {};
-            mCacheGraphicsPSO.StreamOutput = {};
-            mCacheGraphicsPSO.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-            mCacheGraphicsPSO.SampleMask = UINT_MAX;
-            mCacheGraphicsPSO.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-            mCacheGraphicsPSO.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-            mCacheGraphicsPSO.InputLayout = { nullptr, 0 };
-            mCacheGraphicsPSO.IBStripCutValue = {};
-            mCacheGraphicsPSO.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
-            mCacheGraphicsPSO.NumRenderTargets = 0;
-            for (UINT i = 0; i < 8; ++i)
-            {
-                mCacheGraphicsPSO.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
-            }
-            mCacheGraphicsPSO.DSVFormat = DXGI_FORMAT_UNKNOWN;
-            mCacheGraphicsPSO.SampleDesc.Count = 1;
-            mCacheGraphicsPSO.SampleDesc.Quality = 0;
-            mCacheGraphicsPSO.NodeMask = NDQ_NODE_MASK;
-            mCacheGraphicsPSO.CachedPSO = {};
-            mCacheGraphicsPSO.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-        }
 
-        D3D12_GRAPHICS_PIPELINE_STATE_DESC mCacheGraphicsPSO;
-
-        Microsoft::WRL::ComPtr<IDxcBlob> pVertexBlob;
-        Microsoft::WRL::ComPtr<IDxcBlob> pPixelBlob;
-
-        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pVertexReflection;
-        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pPixelReflection;
-    };
-
-    bool operator==(const PIPELINE_DESC& a, const PIPELINE_DESC& b)
-    {
-        if 
-        (
-            a.pVertexBlob == b.pVertexBlob &&
-            a.pPixelBlob == b.pPixelBlob &&
-            a.mCacheGraphicsPSO.PrimitiveTopologyType == b.mCacheGraphicsPSO.PrimitiveTopologyType
-        )
-        {
-            return true;
-        }
-        return false;
-    }
-
-    bool operator!=(const PIPELINE_DESC& a, const PIPELINE_DESC& b)
-    {
-        return !(a == b);
-    }
-
-    ID3D12RootSignature* GetRootSignatureByDesc(const D3D12_ROOT_SIGNATURE_DESC2* pDesc)
-    {
-        return nullptr;
-    }
 
     DXGI_FORMAT GetRawResourceFormat(ndq::NDQ_RESOURCE_FORMAT format)
     {
@@ -321,6 +258,52 @@ namespace Internal
 
     class CommandList : public ndq::ICommandList
     {
+        struct CacheRTData
+        {
+
+        };
+
+        struct PIPELINE_DESC
+        {
+            PIPELINE_DESC()
+            {
+                mCacheGraphicsPSO = {};
+                mCacheGraphicsPSO.pRootSignature = nullptr;
+                mCacheGraphicsPSO.VS = {};
+                mCacheGraphicsPSO.PS = {};
+                mCacheGraphicsPSO.DS = {};
+                mCacheGraphicsPSO.HS = {};
+                mCacheGraphicsPSO.GS = {};
+                mCacheGraphicsPSO.StreamOutput = {};
+                mCacheGraphicsPSO.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+                mCacheGraphicsPSO.SampleMask = 0xffffffff;
+                mCacheGraphicsPSO.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+                mCacheGraphicsPSO.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+                mCacheGraphicsPSO.InputLayout = { nullptr, 0 };
+                mCacheGraphicsPSO.IBStripCutValue = {};
+                mCacheGraphicsPSO.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+                mCacheGraphicsPSO.NumRenderTargets = 0;
+                for (UINT i = 0; i < 8; ++i)
+                {
+                    mCacheGraphicsPSO.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
+                }
+                mCacheGraphicsPSO.DSVFormat = DXGI_FORMAT_UNKNOWN;
+                mCacheGraphicsPSO.SampleDesc.Count = 1;
+                mCacheGraphicsPSO.SampleDesc.Quality = 0;
+                mCacheGraphicsPSO.NodeMask = NDQ_NODE_MASK;
+                mCacheGraphicsPSO.CachedPSO = {};
+                mCacheGraphicsPSO.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+            }
+
+            D3D12_GRAPHICS_PIPELINE_STATE_DESC mCacheGraphicsPSO;
+
+            Microsoft::WRL::ComPtr<IDxcBlob> pVertexBlob;
+            Microsoft::WRL::ComPtr<IDxcBlob> pPixelBlob;
+
+            Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pVertexReflection;
+            Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pPixelReflection;
+        };
+
     public:
         CommandList(ndq::NDQ_COMMAND_LIST_TYPE type, Microsoft::WRL::ComPtr<ID3D12CommandAllocator> pAllocator, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList)
         {
@@ -375,11 +358,33 @@ namespace Internal
                 pDepthHandle = &DepthHandle;
             }
 
+            CompareAndUpdateRT(numViews, ppRenderTargetViews, pDepthStencilView);
+
             pList->OMSetRenderTargets(
                 numViews,
                 TempHandles.empty() ? nullptr : TempHandles.data(),
                 FALSE,
                 pDepthHandle);
+        }
+
+        void CompareAndUpdateRT(ndq::uint32 numViews, ndq::IRenderTargetView* const* ppRenderTargetViews, ndq::IDepthStencilView* pDepthStencilView)
+        {
+            //if (mPipelineDesc.mCacheGraphicsPSO.NumRenderTargets != numViews)
+            //{
+            //    mPipelineDesc.mCacheGraphicsPSO.NumRenderTargets = numViews;
+            //    for (ndq::size_type i = 0; i < numViews; ++i)
+            //    {
+            //        auto Desc = ppRenderTargetViews[i]->GetDesc();
+            //        mPipelineDesc.mCacheGraphicsPSO.RTVFormats[i] = GetRawResourceFormat(Desc.Format);
+            //    }
+            //    if (pDepthStencilView)
+            //    {
+            //        auto Desc = pDepthStencilView->GetDesc();
+            //        mPipelineDesc.mCacheGraphicsPSO.DSVFormat = GetRawResourceFormat(Desc.Format);
+            //    }
+            //    bPSODirty = true;
+            //    return;
+            //}
         }
 
         void SetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)
@@ -478,6 +483,7 @@ namespace Internal
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList;
 
         PIPELINE_DESC mPipelineDesc;
+        CacheRTData mCacheRT;
 
         bool bPSODirty;
     };
