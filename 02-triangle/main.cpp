@@ -5,7 +5,7 @@
 
 using namespace ndq;
 
-struct App : public ndq::IApplication
+struct App : public IApplication
 {
     App()
     {
@@ -14,7 +14,7 @@ struct App : public ndq::IApplication
 
     void Initialize()
     {
-        pGraphicsDevice = ndq::GetGraphicsDevice();
+        pGraphicsDevice = GetGraphicsDevice();
         pCmdList = pGraphicsDevice->GetCommandList(NDQ_COMMAND_LIST_TYPE::GRAPHICS);
     }
 
@@ -22,21 +22,23 @@ struct App : public ndq::IApplication
     {
         auto CurrentIndex = pGraphicsDevice->GetCurrentFrameIndex();
         auto CurrentRTV = pGraphicsDevice->GetInternalRenderTargetView(CurrentIndex);
-        auto Rtvhandle = CurrentRTV->GetHandle();
         auto CurrentTexture = pGraphicsDevice->GetInternalSwapchainTexture2D(CurrentIndex);
+        IRenderTargetView* CurrentRTVArray[] = { CurrentRTV.get() };
 
         pCmdList->Open();
-        pCmdList->SetRenderTargets(1, &Rtvhandle, nullptr);
+        pCmdList->SetRenderTargets(1, CurrentRTVArray, nullptr);
         pCmdList->ResourceBarrier(CurrentTexture.get(), NDQ_RESOURCE_STATE::PRESENT, NDQ_RESOURCE_STATE::RENDER_TARGET);
         float Color[4] = { 1.0f, 0.3f, 0.6f, 1.0f };
-        pCmdList->ClearRenderTargetView(Rtvhandle, Color);
+        pCmdList->ClearRenderTargetView(CurrentRTV.get(), Color);
         pCmdList->ResourceBarrier(CurrentTexture.get(), NDQ_RESOURCE_STATE::RENDER_TARGET, NDQ_RESOURCE_STATE::PRESENT);
         pCmdList->Close();
         pGraphicsDevice->ExecuteCommandList(pCmdList.get());
     }
 
-    std::shared_ptr<ndq::IGraphicsDevice> pGraphicsDevice;
-    std::shared_ptr<ndq::ICommandList> pCmdList;
+    std::shared_ptr<IShader> pVertexShader;
+    std::shared_ptr<IShader> pPixelShader;
+    std::shared_ptr<IGraphicsDevice> pGraphicsDevice;
+    std::shared_ptr<ICommandList> pCmdList;
 };
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)

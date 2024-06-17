@@ -349,34 +349,34 @@ namespace Internal
             pList->ResourceBarrier(1, &barrier);
         }
 
-        void ClearRenderTargetView(ndq::size_type rtv, const float colorRGBA[4])
+        void ClearRenderTargetView(ndq::IRenderTargetView *pRTV, const float colorRGBA[4])
         {
             D3D12_CPU_DESCRIPTOR_HANDLE Handle;
-            Handle.ptr = rtv;
+            Handle.ptr = pRTV->GetHandle();
             pList->ClearRenderTargetView(Handle, colorRGBA, 0, nullptr);
         }
 
-        void SetRenderTargets(ndq::uint32 numRenderTargetDescriptors, const ndq::size_type* pRenderTargetDescriptors, const ndq::size_type* pDepthStencilDescriptor)
+        void SetRenderTargets(ndq::uint32 numViews, ndq::IRenderTargetView* const* ppRenderTargetViews, ndq::IDepthStencilView* pDepthStencilView)
         {
             std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> TempHandles;
-            for (ndq::uint32 i = 0; i < numRenderTargetDescriptors; ++i)
+            for (ndq::uint32 i = 0; i < numViews; ++i)
             {
                 D3D12_CPU_DESCRIPTOR_HANDLE Handle;
-                Handle.ptr = pRenderTargetDescriptors[i];
+                Handle.ptr = ppRenderTargetViews[i]->GetHandle();
                 TempHandles.emplace_back(Handle);
             }
 
             D3D12_CPU_DESCRIPTOR_HANDLE* pDepthHandle = nullptr;
             D3D12_CPU_DESCRIPTOR_HANDLE DepthHandle;
 
-            if (pDepthStencilDescriptor)
+            if (pDepthStencilView)
             {
-                DepthHandle.ptr = *pDepthStencilDescriptor;
+                DepthHandle.ptr = pDepthStencilView->GetHandle();
                 pDepthHandle = &DepthHandle;
             }
 
             pList->OMSetRenderTargets(
-                numRenderTargetDescriptors,
+                numViews,
                 TempHandles.empty() ? nullptr : TempHandles.data(),
                 FALSE,
                 pDepthHandle);
