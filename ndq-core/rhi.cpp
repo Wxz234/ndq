@@ -258,10 +258,12 @@ namespace Internal
 
     class CommandList : public ndq::ICommandList
     {
-        struct CacheRTData
-        {
-
-        };
+        //struct CacheRTData
+        //{
+        //    ndq::uint32 NumRenderTargets;
+        //    ndq::NDQ_RESOURCE_FORMAT RTVFormats[8];
+        //    ndq::NDQ_RESOURCE_FORMAT DSVFormat;
+        //};
 
         struct PIPELINE_DESC
         {
@@ -339,7 +341,7 @@ namespace Internal
             pList->ClearRenderTargetView(Handle, colorRGBA, 0, nullptr);
         }
 
-        void SetRenderTargets(ndq::uint32 numViews, ndq::IRenderTargetView* const* ppRenderTargetViews, ndq::IDepthStencilView* pDepthStencilView)
+        void OMSetRenderTargets(ndq::uint32 numViews, ndq::IRenderTargetView* const* ppRenderTargetViews, ndq::IDepthStencilView* pDepthStencilView)
         {
             std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> TempHandles;
             for (ndq::uint32 i = 0; i < numViews; ++i)
@@ -369,25 +371,36 @@ namespace Internal
 
         void CompareAndUpdateRT(ndq::uint32 numViews, ndq::IRenderTargetView* const* ppRenderTargetViews, ndq::IDepthStencilView* pDepthStencilView)
         {
-            //if (mPipelineDesc.mCacheGraphicsPSO.NumRenderTargets != numViews)
-            //{
-            //    mPipelineDesc.mCacheGraphicsPSO.NumRenderTargets = numViews;
-            //    for (ndq::size_type i = 0; i < numViews; ++i)
-            //    {
-            //        auto Desc = ppRenderTargetViews[i]->GetDesc();
-            //        mPipelineDesc.mCacheGraphicsPSO.RTVFormats[i] = GetRawResourceFormat(Desc.Format);
-            //    }
-            //    if (pDepthStencilView)
-            //    {
-            //        auto Desc = pDepthStencilView->GetDesc();
-            //        mPipelineDesc.mCacheGraphicsPSO.DSVFormat = GetRawResourceFormat(Desc.Format);
-            //    }
-            //    bPSODirty = true;
-            //    return;
-            //}
+            if (mPipelineDesc.mCacheGraphicsPSO.NumRenderTargets != numViews)
+            {
+                mPipelineDesc.mCacheGraphicsPSO.NumRenderTargets = numViews;
+                bPSODirty = true;
+            }
+
+            for (ndq::size_type i = 0; i < numViews; ++i)
+            {
+                auto Desc = ppRenderTargetViews[i]->GetDesc();
+                auto Format = GetRawResourceFormat(Desc.Format);
+                if (mPipelineDesc.mCacheGraphicsPSO.RTVFormats[i] != Format)
+                {
+                    bPSODirty = true;
+                }
+                mPipelineDesc.mCacheGraphicsPSO.RTVFormats[i] = Format;
+            }
+
+            if (pDepthStencilView)
+            {
+                auto Desc = pDepthStencilView->GetDesc();
+                auto Format = GetRawResourceFormat(Desc.Format);
+                if (mPipelineDesc.mCacheGraphicsPSO.DSVFormat != Format)
+                {
+                    bPSODirty = true;
+                }
+                mPipelineDesc.mCacheGraphicsPSO.DSVFormat = Format;
+            }
         }
 
-        void SetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)
+        void IASetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)
         {
             if (auto Temp = GetPrimitiveTopologyType(topology); Temp != mPipelineDesc.mCacheGraphicsPSO.PrimitiveTopologyType)
             {
@@ -397,7 +410,7 @@ namespace Internal
             pList->IASetPrimitiveTopology(static_cast<D3D12_PRIMITIVE_TOPOLOGY>(topology));
         }
 
-        void SetVertexShader(ndq::IShader* pShader)
+        void VSSetVertexShader(ndq::IShader* pShader)
         {
             if (auto TempShader = dynamic_cast<Shader*>(pShader); mPipelineDesc.pVertexBlob != TempShader->pBlob)
             {
@@ -408,7 +421,7 @@ namespace Internal
             }
         }
 
-        void SetPixelShader(ndq::IShader* pShader)
+        void PSSetPixelShader(ndq::IShader* pShader)
         {
             if (auto TempShader = dynamic_cast<Shader*>(pShader); mPipelineDesc.pPixelBlob != TempShader->pBlob)
             {
@@ -483,7 +496,6 @@ namespace Internal
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList;
 
         PIPELINE_DESC mPipelineDesc;
-        CacheRTData mCacheRT;
 
         bool bPSODirty;
     };

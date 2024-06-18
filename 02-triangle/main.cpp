@@ -28,9 +28,9 @@ struct App : public IApplication
         IRenderTargetView* CurrentRTVArray[] = { CurrentRTV.get() };
 
         pCmdList->Open();
-        pCmdList->SetRenderTargets(1, CurrentRTVArray, nullptr);
-        pCmdList->SetVertexShader(pVertexShader.get());
-        pCmdList->SetPixelShader(pPixelShader.get());
+        pCmdList->OMSetRenderTargets(1, CurrentRTVArray, nullptr);
+        pCmdList->VSSetVertexShader(pVertexShader.get());
+        pCmdList->PSSetPixelShader(pPixelShader.get());
         pCmdList->ResourceBarrier(CurrentTexture.get(), NDQ_RESOURCE_STATE::PRESENT, NDQ_RESOURCE_STATE::RENDER_TARGET);
         float Color[4] = { 1.0f, 0.3f, 0.6f, 1.0f };
         pCmdList->ClearRenderTargetView(CurrentRTV.get(), Color);
