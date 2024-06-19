@@ -23,7 +23,7 @@
 #define NDQ_SWAPCHAIN_FORMAT DXGI_FORMAT_R8G8B8A8_UNORM
 #define NDQ_SWAPCHAIN_COUNT 3
 
-typedef HRESULT(WINAPI* PfnCreateFactory2)(UINT Flags, REFIID riid, _COM_Outptr_ void** ppFactory);
+typedef HRESULT(WINAPI* PfnCreateFactory2)(UINT Flags, REFIID riid, void** ppFactory);
 
 namespace Internal
 {
@@ -398,6 +398,11 @@ namespace Internal
                 }
                 mPipelineDesc.mCacheGraphicsPSO.DSVFormat = Format;
             }
+        }
+
+        void IASetInputLayout(const ndq::NDQ_INPUT_ELEMENT_DESC* pInputElementDescs, ndq::uint32 numElements)
+        {
+
         }
 
         void IASetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)

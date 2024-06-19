@@ -23,6 +23,13 @@ namespace ndq
         TRIANGLELIST = 4,
     };
 
+    struct NDQ_INPUT_ELEMENT_DESC
+    {
+        const char* SemanticName;
+        NDQ_RESOURCE_FORMAT Format;
+        int32 InputSlot;
+    };
+
     // IA VS HS TS DS GS SO RS PS OM
 
     class ICommandList
@@ -36,6 +43,7 @@ namespace ndq
         virtual void Close() = 0;
         virtual NDQ_COMMAND_LIST_TYPE GetType() const = 0;
 
+        virtual void IASetInputLayout(const NDQ_INPUT_ELEMENT_DESC* pInputElementDescs, uint32 numElements) = 0;
         virtual void IASetPrimitiveTopology(NDQ_PRIMITIVE_TOPOLOGY topology) = 0;
         virtual void VSSetVertexShader(IShader* pShader) = 0;
         virtual void PSSetPixelShader(IShader* pShader) = 0;
