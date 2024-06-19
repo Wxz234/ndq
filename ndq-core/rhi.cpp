@@ -25,10 +25,16 @@
 
 typedef HRESULT(WINAPI* PfnCreateFactory2)(UINT Flags, REFIID riid, void** ppFactory);
 
+std::string RemoveTrailingNumbers(const std::string& input);
+ndq::uint32 ExtractTrailingNumbers(const std::string& input);
+
+namespace ndq
+{
+    std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, const wchar_t* entryPoint, NDQ_SHADER_TYPE shaderType, const NDQ_SHADER_DEFINE* pDefines, uint32 defineCount);
+}
+
 namespace Internal
 {
-
-
     DXGI_FORMAT GetRawResourceFormat(ndq::NDQ_RESOURCE_FORMAT format)
     {
         DXGI_FORMAT RawFormat;
@@ -402,7 +408,24 @@ namespace Internal
 
         void IASetInputLayout(const ndq::NDQ_INPUT_ELEMENT_DESC* pInputElementDescs, ndq::uint32 numElements)
         {
+            //std::vector<D3D12_INPUT_ELEMENT_DESC> inputElementDescs;
+            //for (ndq::uint32 i = 0; i < numElements; ++i)
+            //{
+            //    auto RealName = RemoveTrailingNumbers(pInputElementDescs[i].SemanticName);
+            //    auto RealIndex = ExtractTrailingNumbers(pInputElementDescs[i].SemanticName);
 
+            //    D3D12_INPUT_ELEMENT_DESC Desc;
+            //    Desc.SemanticName = RealName.c_str();
+            //    Desc.SemanticIndex = RealIndex;
+            //    Desc.Format = GetRawResourceFormat(pInputElementDescs[i].Format);
+            //    Desc.InputSlot = pInputElementDescs[i].InputSlot;
+            //    Desc.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+            //    Desc.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+            //    Desc.InstanceDataStepRate = 0;
+
+            //    inputElementDescs.emplace_back(Desc);
+            //}
+            ////mPipelineDesc.mCacheGraphicsPSO.InputLayout = {}
         }
 
         void IASetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)
@@ -490,7 +513,6 @@ namespace Internal
             {
                 D3D12_SHADER_INPUT_BIND_DESC BindDesc;
                 pReflection->GetResourceBindingDesc(i, &BindDesc);
-                
             }
         }
 
@@ -501,6 +523,7 @@ namespace Internal
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList;
 
         PIPELINE_DESC mPipelineDesc;
+        std::vector<D3D12_INPUT_ELEMENT_DESC> mInputElementDescs;
 
         bool bPSODirty;
     };
@@ -1052,6 +1075,11 @@ namespace Internal
             }
         }
 
+        std::shared_ptr<ndq::IShader> CreateShaderFromFile(const wchar_t* filePath, const wchar_t* entryPoint, ndq::NDQ_SHADER_TYPE shaderType, const ndq::NDQ_SHADER_DEFINE* pDefines, ndq::uint32 defineCount)
+        {
+            return ndq::CompileShaderFromFile(filePath, entryPoint, shaderType, pDefines, defineCount);
+        }
+
         void _CreateInternalGraphicsTexture2D(Microsoft::WRL::ComPtr<ID3D12Resource> pRes, ndq::uint32 index)
         {
             auto RawDesc = pRes->GetDesc();
@@ -1117,7 +1145,7 @@ namespace ndq
         return Device;
     }
 
-    std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, NDQ_SHADER_TYPE shaderType, const wchar_t* entryPoint, const NDQ_SHADER_DEFINE* pDefines, uint32 defineCount)
+    std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, const wchar_t* entryPoint, NDQ_SHADER_TYPE shaderType, const NDQ_SHADER_DEFINE* pDefines, uint32 defineCount)
     {
         static HMODULE DXCLIB = LoadLibraryW(L"dxcompiler.dll");
         auto _DxcCreateInstance = (DxcCreateInstanceProc)GetProcAddress(DXCLIB, "DxcCreateInstance");

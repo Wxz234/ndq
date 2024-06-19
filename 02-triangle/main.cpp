@@ -16,8 +16,8 @@ struct App : public IApplication
     {
         pGraphicsDevice = GetGraphicsDevice();
         pCmdList = pGraphicsDevice->GetCommandList(NDQ_COMMAND_LIST_TYPE::GRAPHICS);
-        pVertexShader = CompileShaderFromFile(L"vertex.hlsl", NDQ_SHADER_TYPE::VERTEX, L"main", nullptr, 0);
-        pPixelShader = CompileShaderFromFile(L"pixel.hlsl", NDQ_SHADER_TYPE::PIXEL, L"main", nullptr, 0);
+        pVertexShader = pGraphicsDevice->CreateShaderFromFile(L"vertex.hlsl", L"main", NDQ_SHADER_TYPE::VERTEX, nullptr, 0);
+        pPixelShader = pGraphicsDevice->CreateShaderFromFile(L"pixel.hlsl", L"main", NDQ_SHADER_TYPE::PIXEL, nullptr, 0);
     }
 
     void Update(float t)

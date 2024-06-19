@@ -2,8 +2,6 @@
 
 #include "ndq/platform.h"
 
-#include <memory>
-
 namespace ndq
 {
     enum class NDQ_SHADER_TYPE
@@ -25,6 +23,4 @@ namespace ndq
         virtual void* GetBlobPointer() const = 0;
         virtual size_type GetBlobSize() const = 0;
     };
-
-    std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, NDQ_SHADER_TYPE shaderType, const wchar_t* entryPoint, const NDQ_SHADER_DEFINE* pDefines, uint32 defineCount);
 }
