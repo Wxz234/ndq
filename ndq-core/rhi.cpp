@@ -265,12 +265,79 @@ namespace Internal
 
     class CommandList : public ndq::ICommandList
     {
-        //struct CacheRTData
-        //{
-        //    ndq::uint32 NumRenderTargets;
-        //    ndq::NDQ_RESOURCE_FORMAT RTVFormats[8];
-        //    ndq::NDQ_RESOURCE_FORMAT DSVFormat;
-        //};
+        struct RTCache
+        {
+            ndq::uint32 NumViews;
+            ndq::IRenderTargetView* RenderTargetViews[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
+            ndq::IDepthStencilView* DepthStencilView;
+            std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> RawRTs;
+            D3D12_CPU_DESCRIPTOR_HANDLE RawDS;
+
+            RTCache() :NumViews(0), RenderTargetViews{ nullptr }, DepthStencilView(nullptr), RawRTs(), RawDS{} {
+            
+            }
+
+            RTCache(ndq::uint32 numViews, ndq::IRenderTargetView* const* ppRenderTargetViews, ndq::IDepthStencilView* pDepthStencilView)
+            {
+                NumViews = numViews;
+                for (ndq::uint32 i = 0; i < NumViews; ++i)
+                {
+                    RenderTargetViews[i] = ppRenderTargetViews[i];
+                    D3D12_CPU_DESCRIPTOR_HANDLE Handle;
+                    Handle.ptr = RenderTargetViews[i]->GetHandle();
+                    RawRTs.emplace_back(Handle);
+                }
+                DepthStencilView = pDepthStencilView;
+                if (DepthStencilView)
+                {
+                    RawDS.ptr = DepthStencilView->GetHandle();
+                }
+            }
+
+            bool operator==(const RTCache& other) const
+            {
+                if (NumViews != other.NumViews || DepthStencilView != other.DepthStencilView)
+                {
+                    return false;
+                }
+
+                for (ndq::uint32 i = 0; i < NumViews; ++i)
+                {
+                    if (RenderTargetViews[i] != other.RenderTargetViews[i])
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            void Update(const RTCache& other)
+            {
+                NumViews = other.NumViews;
+                for (ndq::uint32 i = 0; i < NumViews; ++i)
+                {
+                    RenderTargetViews[i] = other.RenderTargetViews[i];
+                }
+                DepthStencilView = other.DepthStencilView;
+                RawRTs = std::move(other.RawRTs);
+                RawDS = other.RawDS;
+            }
+
+            std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> GetRawRTs() const
+            {
+                return RawRTs;
+            }
+
+            const D3D12_CPU_DESCRIPTOR_HANDLE* GetRawDS() const
+            {
+                if (DepthStencilView)
+                {
+                    return &RawDS;
+                }
+                return nullptr;
+            }
+        };
 
         struct PIPELINE_DESC
         {
@@ -350,89 +417,38 @@ namespace Internal
 
         void OMSetRenderTargets(ndq::uint32 numViews, ndq::IRenderTargetView* const* ppRenderTargetViews, ndq::IDepthStencilView* pDepthStencilView)
         {
-            std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> TempHandles;
-            for (ndq::uint32 i = 0; i < numViews; ++i)
-            {
-                D3D12_CPU_DESCRIPTOR_HANDLE Handle;
-                Handle.ptr = ppRenderTargetViews[i]->GetHandle();
-                TempHandles.emplace_back(Handle);
-            }
+            RTCache TempCache(numViews, ppRenderTargetViews, pDepthStencilView);
 
-            D3D12_CPU_DESCRIPTOR_HANDLE* pDepthHandle = nullptr;
-            D3D12_CPU_DESCRIPTOR_HANDLE DepthHandle;
-
-            if (pDepthStencilView)
-            {
-                DepthHandle.ptr = pDepthStencilView->GetHandle();
-                pDepthHandle = &DepthHandle;
-            }
-
-            CompareAndUpdateRT(numViews, ppRenderTargetViews, pDepthStencilView);
-
-            pList->OMSetRenderTargets(
-                numViews,
-                TempHandles.empty() ? nullptr : TempHandles.data(),
-                FALSE,
-                pDepthHandle);
-        }
-
-        void CompareAndUpdateRT(ndq::uint32 numViews, ndq::IRenderTargetView* const* ppRenderTargetViews, ndq::IDepthStencilView* pDepthStencilView)
-        {
-            if (mPipelineDesc.mCacheGraphicsPSO.NumRenderTargets != numViews)
+            if (mRTCahce != TempCache)
             {
                 mPipelineDesc.mCacheGraphicsPSO.NumRenderTargets = numViews;
+                for (ndq::size_type i = 0; i < numViews; ++i)
+                {
+                    auto Desc = ppRenderTargetViews[i]->GetDesc();
+                    mPipelineDesc.mCacheGraphicsPSO.RTVFormats[i] = GetRawResourceFormat(Desc.Format);
+                }
+                if (pDepthStencilView)
+                {
+                    auto Desc = pDepthStencilView->GetDesc();
+                    mPipelineDesc.mCacheGraphicsPSO.DSVFormat = GetRawResourceFormat(Desc.Format);
+                }
+                mRTCahce.Update(TempCache);
                 bPSODirty = true;
             }
 
-            for (ndq::size_type i = 0; i < numViews; ++i)
-            {
-                auto Desc = ppRenderTargetViews[i]->GetDesc();
-                auto Format = GetRawResourceFormat(Desc.Format);
-                if (mPipelineDesc.mCacheGraphicsPSO.RTVFormats[i] != Format)
-                {
-                    bPSODirty = true;
-                }
-                mPipelineDesc.mCacheGraphicsPSO.RTVFormats[i] = Format;
-            }
+            auto TempRTHandles = mRTCahce.GetRawRTs();
+            auto TempDSHandle = mRTCahce.GetRawDS();
 
-            if (pDepthStencilView)
-            {
-                auto Desc = pDepthStencilView->GetDesc();
-                auto Format = GetRawResourceFormat(Desc.Format);
-                if (mPipelineDesc.mCacheGraphicsPSO.DSVFormat != Format)
-                {
-                    bPSODirty = true;
-                }
-                mPipelineDesc.mCacheGraphicsPSO.DSVFormat = Format;
-            }
+            pList->OMSetRenderTargets(
+                numViews,
+                TempRTHandles.empty() ? nullptr : TempRTHandles.data(),
+                FALSE,
+                TempDSHandle);
         }
 
         void IASetInputLayout(const ndq::NDQ_INPUT_ELEMENT_DESC* pInputElementDescs, ndq::uint32 numElements)
         {
-            //std::vector<ndq::NDQ_INPUT_ELEMENT_DESC> inputElements(pInputElementDescs, pInputElementDescs + numElements);
-            //if (mInputElementDescs != inputElements)
-            //{
-            //    mRawInputElementDescs.clear();
-            //    for (ndq::uint32 i = 0; i < numElements; ++i)
-            //    {
-            //        auto RealName = RemoveTrailingNumbers(pInputElementDescs[i].SemanticName);
-            //        auto RealIndex = ExtractTrailingNumbers(pInputElementDescs[i].SemanticName);
 
-            //        D3D12_INPUT_ELEMENT_DESC Desc;
-            //        Desc.SemanticName = RealName.c_str();
-            //        Desc.SemanticIndex = RealIndex;
-            //        Desc.Format = GetRawResourceFormat(pInputElementDescs[i].Format);
-            //        Desc.InputSlot = pInputElementDescs[i].InputSlot;
-            //        Desc.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-            //        Desc.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-            //        Desc.InstanceDataStepRate = 0;
-
-            //        mRawInputElementDescs.emplace_back(Desc);
-            //    }
-            //    mPipelineDesc.mCacheGraphicsPSO.InputLayout = { mRawInputElementDescs.data(), static_cast<UINT>(mRawInputElementDescs.size()) };
-            //    mInputElementDescs = std::move(inputElements);
-            //    bPSODirty = true;
-            //}
         }
 
         void IASetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)
@@ -530,8 +546,7 @@ namespace Internal
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList;
 
         PIPELINE_DESC mPipelineDesc;
-        std::vector<ndq::NDQ_INPUT_ELEMENT_DESC> mInputElementDescs;
-        std::vector<D3D12_INPUT_ELEMENT_DESC> mRawInputElementDescs;
+        RTCache mRTCahce;
 
         bool bPSODirty;
     };

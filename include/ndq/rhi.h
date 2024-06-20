@@ -3,6 +3,7 @@
 #include "ndq/platform.h"
 #include "ndq/rhi_command.h"
 #include "ndq/rhi_format.h"
+#include "ndq/rhi_input_layout.h"
 #include "ndq/rhi_resource.h"
 #include "ndq/rhi_shader.h"
 #include "ndq/rhi_view.h"
