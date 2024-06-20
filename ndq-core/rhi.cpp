@@ -477,7 +477,7 @@ namespace Internal
             {
                 pInputLayoutCache = pInputLayout;
                 auto pTemp = dynamic_cast<InputLayout*>(pInputLayoutCache);
-                mPipelineDesc.mCacheGraphicsPSO.InputLayout = { pTemp->mRawInputElementDescs.data(), static_cast<UINT>(pTemp->mRawInputElementDescs.size()) };
+                mPipelineDesc.mCacheGraphicsPSO.InputLayout = { pTemp->mRawInputElementDescs.empty() ? nullptr : pTemp->mRawInputElementDescs.data(), static_cast<UINT>(pTemp->mRawInputElementDescs.size()) };
                 bPSODirty = true;
             }
         }
