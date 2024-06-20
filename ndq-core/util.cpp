@@ -2,9 +2,7 @@
 
 #include <cctype>
 #include <charconv>
-#include <limits>
 #include <string>
-#include <system_error>
 
 std::string RemoveTrailingNumbers(const std::string& input)
 {
@@ -29,16 +27,8 @@ ndq::uint32 ExtractTrailingNumbers(const std::string& input)
         return 0;
     }
 
-    ndq::uint32 result = 0;
-    auto [ptr, ec] = std::from_chars(trailingNumbersStr.data(), trailingNumbersStr.data() + trailingNumbersStr.size(), result);
-    if (ec == std::errc::invalid_argument)
-    {
-        return std::numeric_limits<ndq::uint32>::max();
-    }
-    else if (ec == std::errc::result_out_of_range)
-    {
-        return std::numeric_limits<ndq::uint32>::max();
-    }
+    ndq::uint32 result = 0xffffffff;
+    std::from_chars(trailingNumbersStr.data(), trailingNumbersStr.data() + trailingNumbersStr.size(), result);
 
     return result;
 }

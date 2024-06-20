@@ -14,6 +14,7 @@
 #include <atomic>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "ndq_internal.h"
@@ -408,24 +409,30 @@ namespace Internal
 
         void IASetInputLayout(const ndq::NDQ_INPUT_ELEMENT_DESC* pInputElementDescs, ndq::uint32 numElements)
         {
-            //std::vector<D3D12_INPUT_ELEMENT_DESC> inputElementDescs;
-            //for (ndq::uint32 i = 0; i < numElements; ++i)
+            //std::vector<ndq::NDQ_INPUT_ELEMENT_DESC> inputElements(pInputElementDescs, pInputElementDescs + numElements);
+            //if (mInputElementDescs != inputElements)
             //{
-            //    auto RealName = RemoveTrailingNumbers(pInputElementDescs[i].SemanticName);
-            //    auto RealIndex = ExtractTrailingNumbers(pInputElementDescs[i].SemanticName);
+            //    mRawInputElementDescs.clear();
+            //    for (ndq::uint32 i = 0; i < numElements; ++i)
+            //    {
+            //        auto RealName = RemoveTrailingNumbers(pInputElementDescs[i].SemanticName);
+            //        auto RealIndex = ExtractTrailingNumbers(pInputElementDescs[i].SemanticName);
 
-            //    D3D12_INPUT_ELEMENT_DESC Desc;
-            //    Desc.SemanticName = RealName.c_str();
-            //    Desc.SemanticIndex = RealIndex;
-            //    Desc.Format = GetRawResourceFormat(pInputElementDescs[i].Format);
-            //    Desc.InputSlot = pInputElementDescs[i].InputSlot;
-            //    Desc.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-            //    Desc.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-            //    Desc.InstanceDataStepRate = 0;
+            //        D3D12_INPUT_ELEMENT_DESC Desc;
+            //        Desc.SemanticName = RealName.c_str();
+            //        Desc.SemanticIndex = RealIndex;
+            //        Desc.Format = GetRawResourceFormat(pInputElementDescs[i].Format);
+            //        Desc.InputSlot = pInputElementDescs[i].InputSlot;
+            //        Desc.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+            //        Desc.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+            //        Desc.InstanceDataStepRate = 0;
 
-            //    inputElementDescs.emplace_back(Desc);
+            //        mRawInputElementDescs.emplace_back(Desc);
+            //    }
+            //    mPipelineDesc.mCacheGraphicsPSO.InputLayout = { mRawInputElementDescs.data(), static_cast<UINT>(mRawInputElementDescs.size()) };
+            //    mInputElementDescs = std::move(inputElements);
+            //    bPSODirty = true;
             //}
-            ////mPipelineDesc.mCacheGraphicsPSO.InputLayout = {}
         }
 
         void IASetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)
@@ -523,7 +530,8 @@ namespace Internal
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList;
 
         PIPELINE_DESC mPipelineDesc;
-        std::vector<D3D12_INPUT_ELEMENT_DESC> mInputElementDescs;
+        std::vector<ndq::NDQ_INPUT_ELEMENT_DESC> mInputElementDescs;
+        std::vector<D3D12_INPUT_ELEMENT_DESC> mRawInputElementDescs;
 
         bool bPSODirty;
     };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ndq/platform.h"
+#include "ndq/rhi_input_layout.h"
 #include "ndq/rhi_resource.h"
 #include "ndq/rhi_shader.h"
 #include "ndq/rhi_view.h"
@@ -21,13 +22,6 @@ namespace ndq
         LINELIST = 2,
         LINESTRIP = 3,
         TRIANGLELIST = 4,
-    };
-
-    struct NDQ_INPUT_ELEMENT_DESC
-    {
-        const char* SemanticName;
-        NDQ_RESOURCE_FORMAT Format;
-        int32 InputSlot;
     };
 
     // IA VS HS TS DS GS SO RS PS OM
