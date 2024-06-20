@@ -324,9 +324,13 @@ namespace Internal
                 RawDS = other.RawDS;
             }
 
-            std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> GetRawRTs() const
+            const D3D12_CPU_DESCRIPTOR_HANDLE* GetRawRTs() const
             {
-                return RawRTs;
+                if (NumViews)
+                {
+                    return RawRTs.data();
+                }
+                return nullptr;
             }
 
             const D3D12_CPU_DESCRIPTOR_HANDLE* GetRawDS() const
@@ -439,11 +443,7 @@ namespace Internal
             auto TempRTHandles = mRTCahce.GetRawRTs();
             auto TempDSHandle = mRTCahce.GetRawDS();
 
-            pList->OMSetRenderTargets(
-                numViews,
-                TempRTHandles.empty() ? nullptr : TempRTHandles.data(),
-                FALSE,
-                TempDSHandle);
+            pList->OMSetRenderTargets(numViews, TempRTHandles, FALSE, TempDSHandle);
         }
 
         void IASetInputLayout(const ndq::NDQ_INPUT_ELEMENT_DESC* pInputElementDescs, ndq::uint32 numElements)
