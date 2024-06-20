@@ -26,6 +26,7 @@ namespace ndq
         virtual std::shared_ptr<IGraphicsTexture2D> GetInternalSwapchainTexture2D(uint32 index) const = 0;
         virtual uint32 GetCurrentFrameIndex() const = 0;
         virtual std::shared_ptr<IShader> CreateShaderFromFile(const wchar_t* filePath, const wchar_t* entryPoint, NDQ_SHADER_TYPE shaderType, const NDQ_SHADER_DEFINE* pDefines, uint32 defineCount) = 0;
+        virtual std::shared_ptr<IInputLayout> CreateInputLayout(const NDQ_INPUT_ELEMENT_DESC* pInputElementDescs, uint32 numElements) = 0;
     };
 
     std::shared_ptr<IGraphicsDevice> GetGraphicsDevice();

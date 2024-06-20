@@ -14,6 +14,7 @@ namespace ndq
 
     class IInputLayout
     {
-
+    public:
+        virtual NDQ_INPUT_ELEMENT_DESC GetDesc(uint32 index) const = 0;
     };
 }

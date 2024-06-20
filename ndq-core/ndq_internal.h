@@ -9,7 +9,7 @@
 #include <Windows.h>
 
 #include "ndq/platform.h"
-#include "ndq/rhi.h"
+#include "ndq/rhi_command.h"
 
 namespace Internal
 {

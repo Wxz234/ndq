@@ -141,6 +141,15 @@ namespace Internal
         return Type;
     }
 
+    class InputLayout : public ndq::IInputLayout
+    {
+    public:
+        InputLayout(const ndq::NDQ_INPUT_ELEMENT_DESC* pInputElementDescs, ndq::uint32 numElements) : mDesc(pInputElementDescs, pInputElementDescs + numElements) {}
+        ndq::NDQ_INPUT_ELEMENT_DESC GetDesc(ndq::uint32 index) const { return mDesc[index]; }
+
+        std::vector<ndq::NDQ_INPUT_ELEMENT_DESC> mDesc;
+    };
+
     class RenderTargetView : public ndq::IRenderTargetView
     {
     public:
@@ -178,8 +187,6 @@ namespace Internal
         ndq::NDQ_DEPTH_STENCIL_VIEW_DESC mDesc;
         D3D12_CPU_DESCRIPTOR_HANDLE mHandle;
     };
-
-
 
     class Shader : public ndq::IShader
     {
@@ -1055,6 +1062,11 @@ namespace Internal
         std::shared_ptr<ndq::IGraphicsTexture2D> GetInternalSwapchainTexture2D(ndq::uint32 index) const
         {
             return pRTObject[index];
+        }
+
+        std::shared_ptr<ndq::IInputLayout> CreateInputLayout(const ndq::NDQ_INPUT_ELEMENT_DESC* pInputElementDescs, ndq::uint32 numElements)
+        {
+            return std::shared_ptr<ndq::IInputLayout>(new InputLayout(pInputElementDescs, numElements));
         }
 
         void RunGarbageCollection()
