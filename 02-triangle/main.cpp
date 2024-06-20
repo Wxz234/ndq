@@ -18,6 +18,12 @@ struct App : public IApplication
         pCmdList = pGraphicsDevice->GetCommandList(NDQ_COMMAND_LIST_TYPE::GRAPHICS);
         pVertexShader = pGraphicsDevice->CreateShaderFromFile(L"vertex.hlsl", L"main", NDQ_SHADER_TYPE::VERTEX, nullptr, 0);
         pPixelShader = pGraphicsDevice->CreateShaderFromFile(L"pixel.hlsl", L"main", NDQ_SHADER_TYPE::PIXEL, nullptr, 0);
+
+        NDQ_INPUT_ELEMENT_DESC InputDesc[] =
+        {
+            {"POSITION0", NDQ_RESOURCE_FORMAT::R32G32B32_FLOAT, 0 }
+        };
+        pInputLayout = pGraphicsDevice->CreateInputLayout(InputDesc, 1);
     }
 
     void Update(float t)
@@ -28,6 +34,8 @@ struct App : public IApplication
         IRenderTargetView* CurrentRTVArray[] = { CurrentRTV.get() };
 
         pCmdList->Open();
+        pCmdList->IASetInputLayout(pInputLayout.get());
+        pCmdList->IASetPrimitiveTopology(NDQ_PRIMITIVE_TOPOLOGY::TRIANGLELIST);
         pCmdList->OMSetRenderTargets(1, CurrentRTVArray, nullptr);
         pCmdList->VSSetVertexShader(pVertexShader.get());
         pCmdList->PSSetPixelShader(pPixelShader.get());
@@ -43,6 +51,7 @@ struct App : public IApplication
     std::shared_ptr<IShader> pPixelShader;
     std::shared_ptr<IGraphicsDevice> pGraphicsDevice;
     std::shared_ptr<ICommandList> pCmdList;
+    std::shared_ptr<IInputLayout> pInputLayout;
 };
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)

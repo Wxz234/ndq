@@ -46,6 +46,9 @@ namespace Internal
         case ndq::NDQ_RESOURCE_FORMAT::D24_UNORM_S8_UINT:
             RawFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
             break;
+        case ndq::NDQ_RESOURCE_FORMAT::R32G32B32_FLOAT:
+            RawFormat = DXGI_FORMAT_R32G32B32_FLOAT;
+            break;
         default:
             RawFormat = DXGI_FORMAT_UNKNOWN;
             break;
@@ -64,6 +67,9 @@ namespace Internal
             break;
         case DXGI_FORMAT_D24_UNORM_S8_UINT:
             Format = ndq::NDQ_RESOURCE_FORMAT::D24_UNORM_S8_UINT;
+            break;
+        case DXGI_FORMAT_R32G32B32_FLOAT:
+            Format = ndq::NDQ_RESOURCE_FORMAT::R32G32B32_FLOAT;
             break;
         default:
             Format = ndq::NDQ_RESOURCE_FORMAT::UNKNOWN;
