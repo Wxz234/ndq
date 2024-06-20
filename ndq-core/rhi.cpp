@@ -14,7 +14,6 @@
 #include <atomic>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "ndq_internal.h"
@@ -273,9 +272,7 @@ namespace Internal
             std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> RawRTs;
             D3D12_CPU_DESCRIPTOR_HANDLE RawDS;
 
-            RTCache() :NumViews(0), RenderTargetViews{ nullptr }, DepthStencilView(nullptr), RawRTs(), RawDS{} {
-            
-            }
+            RTCache() :NumViews(0), RenderTargetViews{ nullptr }, DepthStencilView(nullptr), RawRTs(), RawDS{} {}
 
             RTCache(ndq::uint32 numViews, ndq::IRenderTargetView* const* ppRenderTargetViews, ndq::IDepthStencilView* pDepthStencilView)
             {
@@ -320,7 +317,7 @@ namespace Internal
                     RenderTargetViews[i] = other.RenderTargetViews[i];
                 }
                 DepthStencilView = other.DepthStencilView;
-                RawRTs = std::move(other.RawRTs);
+                RawRTs = other.RawRTs;
                 RawDS = other.RawDS;
             }
 
