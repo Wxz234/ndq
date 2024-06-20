@@ -144,10 +144,30 @@ namespace Internal
     class InputLayout : public ndq::IInputLayout
     {
     public:
-        InputLayout(const ndq::NDQ_INPUT_ELEMENT_DESC* pInputElementDescs, ndq::uint32 numElements) : mDesc(pInputElementDescs, pInputElementDescs + numElements) {}
+        InputLayout(const ndq::NDQ_INPUT_ELEMENT_DESC* pInputElementDescs, ndq::uint32 numElements) : mDesc(pInputElementDescs, pInputElementDescs + numElements)
+        {
+            for (ndq::uint32 i = 0; i < numElements; ++i)
+            {
+                auto RealName = RemoveTrailingNumbers(mDesc[i].SemanticName);
+                auto RealIndex = ExtractTrailingNumbers(mDesc[i].SemanticName);
+
+                D3D12_INPUT_ELEMENT_DESC Desc;
+                Desc.SemanticName = RealName.c_str();
+                Desc.SemanticIndex = RealIndex;
+                Desc.Format = GetRawResourceFormat(mDesc[i].Format);
+                Desc.InputSlot = mDesc[i].InputSlot;
+                Desc.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+                Desc.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+                Desc.InstanceDataStepRate = 0;
+
+                mRawInputElementDescs.emplace_back(Desc);
+            }
+        }
+
         ndq::NDQ_INPUT_ELEMENT_DESC GetDesc(ndq::uint32 index) const { return mDesc[index]; }
 
         std::vector<ndq::NDQ_INPUT_ELEMENT_DESC> mDesc;
+        std::vector<D3D12_INPUT_ELEMENT_DESC> mRawInputElementDescs;
     };
 
     class RenderTargetView : public ndq::IRenderTargetView
@@ -397,6 +417,7 @@ namespace Internal
             this->pAllocator = pAllocator;
             this->pList = pList;
             bPSODirty = false;
+            pInputLayoutCache = nullptr;
         }
 
         void Open()
@@ -450,9 +471,15 @@ namespace Internal
             pList->OMSetRenderTargets(numViews, TempRTHandles, FALSE, TempDSHandle);
         }
 
-        void IASetInputLayout(const ndq::NDQ_INPUT_ELEMENT_DESC* pInputElementDescs, ndq::uint32 numElements)
+        void IASetInputLayout(ndq::IInputLayout* pInputLayout)
         {
-
+            if (pInputLayoutCache != pInputLayout)
+            {
+                pInputLayoutCache = pInputLayout;
+                auto pTemp = dynamic_cast<InputLayout*>(pInputLayoutCache);
+                mPipelineDesc.mCacheGraphicsPSO.InputLayout = { pTemp->mRawInputElementDescs.data(), static_cast<UINT>(pTemp->mRawInputElementDescs.size()) };
+                bPSODirty = true;
+            }
         }
 
         void IASetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)
@@ -551,6 +578,7 @@ namespace Internal
 
         PIPELINE_DESC mPipelineDesc;
         RTCache mRTCahce;
+        ndq::IInputLayout* pInputLayoutCache;
 
         bool bPSODirty;
     };

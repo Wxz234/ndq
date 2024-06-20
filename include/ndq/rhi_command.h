@@ -37,7 +37,7 @@ namespace ndq
         virtual void Close() = 0;
         virtual NDQ_COMMAND_LIST_TYPE GetType() const = 0;
 
-        virtual void IASetInputLayout(const NDQ_INPUT_ELEMENT_DESC* pInputElementDescs, uint32 numElements) = 0;
+        virtual void IASetInputLayout(IInputLayout* pInputLayout) = 0;
         virtual void IASetPrimitiveTopology(NDQ_PRIMITIVE_TOPOLOGY topology) = 0;
         virtual void VSSetVertexShader(IShader* pShader) = 0;
         virtual void PSSetPixelShader(IShader* pShader) = 0;
