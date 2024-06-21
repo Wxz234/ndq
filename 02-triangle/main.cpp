@@ -21,9 +21,13 @@ struct App : public IApplication
 
         NDQ_INPUT_ELEMENT_DESC InputDesc[] =
         {
-            {"POSITION0", NDQ_RESOURCE_FORMAT::R32G32B32_FLOAT, 0 }
+            { "POSITION", NDQ_RESOURCE_FORMAT::R32G32B32A32_FLOAT, 0 }
         };
         pInputLayout = pGraphicsDevice->CreateInputLayout(InputDesc, 1);
+
+        NDQ_BUFFER_DESC BufferDesc{};
+        BufferDesc.SizeInBytes = sizeof(float) * 4 * 3;
+        pVertex = pGraphicsDevice->AllocateBuffer(&BufferDesc, NDQ_RESOURCE_HEAP_TYPE::UPLOAD, NDQ_RESOURCE_STATE::UNIVERSAL_READ);
     }
 
     void Update(float t)
@@ -52,6 +56,7 @@ struct App : public IApplication
     std::shared_ptr<IGraphicsDevice> pGraphicsDevice;
     std::shared_ptr<ICommandList> pCmdList;
     std::shared_ptr<IInputLayout> pInputLayout;
+    std::shared_ptr<IGraphicsBuffer> pVertex;
 };
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)

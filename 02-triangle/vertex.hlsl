@@ -1,11 +1,13 @@
-cbuffer PerFrame : register(b0)
+struct PSInput
 {
-    float4x4 viewProjectionMatrix;
-    float3 lightDirection;
-    float pad;
+    float4 position : SV_POSITION;
 };
 
-float4 main( float4 pos : POSITION ) : SV_POSITION
+PSInput main(float4 position : POSITION)
 {
-	return float4(lightDirection,1);
+    PSInput result;
+
+    result.position = position;
+    
+    return result;
 }

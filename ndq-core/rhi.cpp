@@ -49,6 +49,9 @@ namespace Internal
         case ndq::NDQ_RESOURCE_FORMAT::R32G32B32_FLOAT:
             RawFormat = DXGI_FORMAT_R32G32B32_FLOAT;
             break;
+        case ndq::NDQ_RESOURCE_FORMAT::R32G32B32A32_FLOAT:
+            RawFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
+            break;
         default:
             RawFormat = DXGI_FORMAT_UNKNOWN;
             break;
@@ -70,6 +73,9 @@ namespace Internal
             break;
         case DXGI_FORMAT_R32G32B32_FLOAT:
             Format = ndq::NDQ_RESOURCE_FORMAT::R32G32B32_FLOAT;
+            break;
+        case DXGI_FORMAT_R32G32B32A32_FLOAT:
+            Format = ndq::NDQ_RESOURCE_FORMAT::R32G32B32A32_FLOAT;
             break;
         default:
             Format = ndq::NDQ_RESOURCE_FORMAT::UNKNOWN;
@@ -496,6 +502,11 @@ namespace Internal
                 bPSODirty = true;
             }
             pList->IASetPrimitiveTopology(static_cast<D3D12_PRIMITIVE_TOPOLOGY>(topology));
+        }
+
+        void IASetVertexBuffers(ndq::uint32 startSlot, ndq::uint32 numBuffers, ndq::IGraphicsBuffer* const* ppVertexBuffers)
+        {
+
         }
 
         void VSSetVertexShader(ndq::IShader* pShader)
@@ -959,7 +970,7 @@ namespace Internal
             return TempPtr;
         }
 
-        std::shared_ptr<ndq::IGraphicsBuffer> AllocateUploadBuffer(const ndq::NDQ_BUFFER_DESC* pDesc)
+        std::shared_ptr<ndq::IGraphicsBuffer> AllocateBuffer(const ndq::NDQ_BUFFER_DESC* pDesc, ndq::NDQ_RESOURCE_HEAP_TYPE type, ndq::NDQ_RESOURCE_STATE state)
         {
             D3D12_RESOURCE_DESC BufferResDesc{};
             BufferResDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -975,13 +986,13 @@ namespace Internal
             BufferResDesc.Flags = static_cast<D3D12_RESOURCE_FLAGS>(pDesc->Flags);
 
             D3D12_HEAP_PROPERTIES Prop{};
-            Prop.Type = GetRawHeapType(ndq::NDQ_RESOURCE_HEAP_TYPE::UPLOAD);
+            Prop.Type = GetRawHeapType(type);
             Prop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
             Prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
             Prop.CreationNodeMask = 1;
             Prop.VisibleNodeMask = 1;
             Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
-            pDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::UNIVERSAL_READ), nullptr, IID_PPV_ARGS(&pResource));
+            pDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(state), nullptr, IID_PPV_ARGS(&pResource));
 
             auto* RawPtr = new GraphicsBuffer(pResource, pDesc);
             std::shared_ptr<ndq::IGraphicsBuffer> retVal(RawPtr);
@@ -990,69 +1001,7 @@ namespace Internal
             return retVal;
         }
 
-        std::shared_ptr<ndq::IGraphicsBuffer> AllocateDefaultBuffer(const ndq::NDQ_BUFFER_DESC* pDesc)
-        {
-            D3D12_RESOURCE_DESC BufferResDesc{};
-            BufferResDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-            BufferResDesc.Alignment = 0;
-            BufferResDesc.Width = pDesc->SizeInBytes;
-            BufferResDesc.Height = 1;
-            BufferResDesc.DepthOrArraySize = 1;
-            BufferResDesc.MipLevels = 1;
-            BufferResDesc.Format = DXGI_FORMAT_UNKNOWN;
-            BufferResDesc.SampleDesc.Count = 1;
-            BufferResDesc.SampleDesc.Quality = 0;
-            BufferResDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-            BufferResDesc.Flags = static_cast<D3D12_RESOURCE_FLAGS>(pDesc->Flags);
-
-            D3D12_HEAP_PROPERTIES Prop{};
-            Prop.Type = GetRawHeapType(ndq::NDQ_RESOURCE_HEAP_TYPE::DEFAULT);
-            Prop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-            Prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-            Prop.CreationNodeMask = 1;
-            Prop.VisibleNodeMask = 1;
-            Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
-            pDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::COMMON), nullptr, IID_PPV_ARGS(&pResource));
-
-            auto* RawPtr = new GraphicsBuffer(pResource, pDesc);
-            std::shared_ptr<ndq::IGraphicsBuffer> retVal(RawPtr);
-            std::shared_ptr<ndq::IGraphicsResource> TempPtr = retVal;
-            mGPURes.push_back(TempPtr);
-            return retVal;
-        }
-
-        std::shared_ptr<ndq::IGraphicsBuffer> AllocateReadbackBuffer(const ndq::NDQ_BUFFER_DESC* pDesc)
-        {
-            D3D12_RESOURCE_DESC BufferResDesc{};
-            BufferResDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-            BufferResDesc.Alignment = 0;
-            BufferResDesc.Width = pDesc->SizeInBytes;
-            BufferResDesc.Height = 1;
-            BufferResDesc.DepthOrArraySize = 1;
-            BufferResDesc.MipLevels = 1;
-            BufferResDesc.Format = DXGI_FORMAT_UNKNOWN;
-            BufferResDesc.SampleDesc.Count = 1;
-            BufferResDesc.SampleDesc.Quality = 0;
-            BufferResDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-            BufferResDesc.Flags = static_cast<D3D12_RESOURCE_FLAGS>(pDesc->Flags);
-
-            D3D12_HEAP_PROPERTIES Prop{};
-            Prop.Type = GetRawHeapType(ndq::NDQ_RESOURCE_HEAP_TYPE::READBACK);
-            Prop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-            Prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-            Prop.CreationNodeMask = 1;
-            Prop.VisibleNodeMask = 1;
-            Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
-            pDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &BufferResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::COPY_DEST), nullptr, IID_PPV_ARGS(&pResource));
-
-            auto* RawPtr = new GraphicsBuffer(pResource, pDesc);
-            std::shared_ptr<ndq::IGraphicsBuffer> retVal(RawPtr);
-            std::shared_ptr<ndq::IGraphicsResource> TempPtr = retVal;
-            mGPURes.push_back(TempPtr);
-            return retVal;
-        }
-
-        std::shared_ptr<ndq::IGraphicsTexture2D> AllocateTexture2D(const ndq::NDQ_TEXTURE2D_DESC* pDesc)
+        std::shared_ptr<ndq::IGraphicsTexture2D> AllocateTexture2D(const ndq::NDQ_TEXTURE2D_DESC* pDesc, ndq::NDQ_RESOURCE_HEAP_TYPE type, ndq::NDQ_RESOURCE_STATE state)
         {
             D3D12_RESOURCE_DESC TextureResDesc{};
             TextureResDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -1068,13 +1017,13 @@ namespace Internal
             TextureResDesc.Flags = static_cast<D3D12_RESOURCE_FLAGS>(pDesc->Flags);
 
             D3D12_HEAP_PROPERTIES Prop{};
-            Prop.Type = D3D12_HEAP_TYPE_DEFAULT;
+            Prop.Type = GetRawHeapType(type);
             Prop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
             Prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
             Prop.CreationNodeMask = 1;
             Prop.VisibleNodeMask = 1;
             Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
-            pDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &TextureResDesc, GetRawResourceState(ndq::NDQ_RESOURCE_STATE::COMMON), nullptr, IID_PPV_ARGS(&pResource));
+            pDevice->CreateCommittedResource(&Prop, D3D12_HEAP_FLAG_NONE, &TextureResDesc, GetRawResourceState(state), nullptr, IID_PPV_ARGS(&pResource));
 
             auto* RawPtr = new GraphicsTexture2D(pResource, pDesc);
             std::shared_ptr<ndq::IGraphicsTexture2D> retVal(RawPtr);
