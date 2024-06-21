@@ -1,9 +1,18 @@
 #include <Windows.h>
 
+#include <DirectXMath.h>
+
+#include <cstring>
+
 #include "ndq/rhi.h"
 #include "ndq/window.h"
 
 using namespace ndq;
+
+struct Vertex
+{
+    DirectX::XMFLOAT4 position;
+};
 
 struct App : public IApplication
 {
@@ -25,9 +34,29 @@ struct App : public IApplication
         };
         pInputLayout = pGraphicsDevice->CreateInputLayout(InputDesc, 1);
 
+        Vertex TriangleVertices[] =
+        {
+            { { 0.0f,    0.25f, 0.0f, 1.0f } },
+            { { 0.25f,  -0.25f, 0.0f, 1.0f } },
+            { { -0.25f, -0.25f, 0.0f, 1.0f } }
+        };
+
+        uint32 VertexStrideInBytes = sizeof(Vertex);
+        uint32 VertexSizeInBytes = sizeof(TriangleVertices);
+
         NDQ_BUFFER_DESC BufferDesc{};
-        BufferDesc.SizeInBytes = sizeof(float) * 12;
+        BufferDesc.SizeInBytes = VertexSizeInBytes;
         pVertex = pGraphicsDevice->AllocateBuffer(&BufferDesc, NDQ_RESOURCE_HEAP_TYPE::UPLOAD, NDQ_RESOURCE_STATE::UNIVERSAL_READ);
+
+        void* pVertexDataBegin;
+        pVertex->Map(&pVertexDataBegin);
+        memcpy(pVertexDataBegin, TriangleVertices, VertexSizeInBytes);
+        pVertex->Unmap();
+
+        mVBV.BufferLocation = pVertex->GetGPUVirtualAddress();
+        mVBV.StrideInBytes = VertexStrideInBytes;
+        mVBV.SizeInBytes = VertexSizeInBytes;
+
     }
 
     void Update(float t)
@@ -40,6 +69,7 @@ struct App : public IApplication
         pCmdList->Open();
         pCmdList->IASetInputLayout(pInputLayout.get());
         pCmdList->IASetPrimitiveTopology(NDQ_PRIMITIVE_TOPOLOGY::TRIANGLELIST);
+        pCmdList->IASetVertexBuffers(0, 1, &mVBV);
         pCmdList->OMSetRenderTargets(1, CurrentRTVArray, nullptr);
         pCmdList->VSSetVertexShader(pVertexShader.get());
         pCmdList->PSSetPixelShader(pPixelShader.get());
@@ -57,6 +87,8 @@ struct App : public IApplication
     std::shared_ptr<ICommandList> pCmdList;
     std::shared_ptr<IInputLayout> pInputLayout;
     std::shared_ptr<IGraphicsBuffer> pVertex;
+
+    NDQ_VERTEX_BUFFER_VIEW mVBV{};
 };
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
