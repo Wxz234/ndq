@@ -56,4 +56,11 @@ namespace ndq
     public:
         virtual NDQ_DEPTH_STENCIL_VIEW_DESC GetDesc() const = 0;
     };
+
+    struct NDQ_VERTEX_BUFFER_VIEW
+    {
+        uint64 BufferLocation;
+        uint32 SizeInBytes;
+        uint32 StrideInBytes;
+    };
 }

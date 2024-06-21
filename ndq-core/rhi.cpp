@@ -261,7 +261,7 @@ namespace Internal
         return Temp;
     }
 
-    class GraphicsBuffer : public ndq::IGraphicsBuffer
+    class GraphicsBuffer : public ndq::IGraphicsBuffer, public GraphicsResourceInterface
     {
     public:
         GraphicsBuffer(Microsoft::WRL::ComPtr<ID3D12Resource> pResource,const ndq::NDQ_BUFFER_DESC *pDesc) : pResource(pResource), mDesc(*pDesc) {}
@@ -282,20 +282,23 @@ namespace Internal
             return mDesc;
         }
 
-        void* GetRawPtr() const
+        ndq::uint64 GetGPUVirtualAddress() const
         {
-            return pResource.Get();
+            return pResource->GetGPUVirtualAddress();
         }
+
+        void* GetRawPtr() const { return pResource.Get(); }
 
         Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
         ndq::NDQ_BUFFER_DESC mDesc;
     };
 
-    class GraphicsTexture2D : public ndq::IGraphicsTexture2D
+    class GraphicsTexture2D : public ndq::IGraphicsTexture2D, public GraphicsResourceInterface
     {
     public:
         GraphicsTexture2D(Microsoft::WRL::ComPtr<ID3D12Resource> pResource,const ndq::NDQ_TEXTURE2D_DESC* pDesc) : pResource(pResource), mDesc(*pDesc) {}
         ndq::NDQ_TEXTURE2D_DESC GetDesc() const { return mDesc; }
+        ndq::uint64 GetGPUVirtualAddress() const { return pResource->GetGPUVirtualAddress(); }
         void* GetRawPtr() const { return pResource.Get(); }
         Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
         ndq::NDQ_TEXTURE2D_DESC mDesc;
@@ -445,7 +448,8 @@ namespace Internal
 
         void ResourceBarrier(ndq::IGraphicsResource* pRes, ndq::NDQ_RESOURCE_STATE brfore, ndq::NDQ_RESOURCE_STATE after)
         {
-            auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(reinterpret_cast<ID3D12Resource*> (pRes->GetRawPtr()), GetRawResourceState(brfore), GetRawResourceState(after));
+            auto TempPtr = dynamic_cast<GraphicsResourceInterface*>(pRes);
+            auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(reinterpret_cast<ID3D12Resource*> (TempPtr->GetRawPtr()), GetRawResourceState(brfore), GetRawResourceState(after));
             pList->ResourceBarrier(1, &barrier);
         }
 
@@ -504,9 +508,10 @@ namespace Internal
             pList->IASetPrimitiveTopology(static_cast<D3D12_PRIMITIVE_TOPOLOGY>(topology));
         }
 
-        void IASetVertexBuffers(ndq::uint32 startSlot, ndq::uint32 numBuffers, ndq::IGraphicsBuffer* const* ppVertexBuffers)
+        void IASetVertexBuffers(ndq::uint32 startSlot, ndq::uint32 numViews, const ndq::NDQ_VERTEX_BUFFER_VIEW* pViews)
         {
-
+            const D3D12_VERTEX_BUFFER_VIEW* pVBV = reinterpret_cast<const D3D12_VERTEX_BUFFER_VIEW*>(pViews);
+            pList->IASetVertexBuffers(startSlot, numViews, pVBV);
         }
 
         void VSSetVertexShader(ndq::IShader* pShader)

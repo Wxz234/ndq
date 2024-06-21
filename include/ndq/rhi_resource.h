@@ -54,7 +54,7 @@ namespace ndq
     class IGraphicsResource
     {
     public:
-        virtual void* GetRawPtr() const = 0;
+        virtual uint64 GetGPUVirtualAddress() const = 0;
     };
 
     class IGraphicsBuffer : public IGraphicsResource

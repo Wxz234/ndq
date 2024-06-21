@@ -21,4 +21,9 @@ namespace Internal
         virtual void RunGarbageCollection() = 0;
         virtual ndq::uint64 GetCompletedFenceValue(ndq::NDQ_COMMAND_LIST_TYPE type) const = 0;
     };
+
+    struct GraphicsResourceInterface
+    {
+        virtual void* GetRawPtr() const = 0;
+    };
 }

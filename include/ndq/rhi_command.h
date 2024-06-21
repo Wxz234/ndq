@@ -39,7 +39,7 @@ namespace ndq
 
         virtual void IASetInputLayout(IInputLayout* pInputLayout) = 0;
         virtual void IASetPrimitiveTopology(NDQ_PRIMITIVE_TOPOLOGY topology) = 0;
-        virtual void IASetVertexBuffers(uint32 startSlot, uint32 numBuffers, IGraphicsBuffer* const* ppVertexBuffers) = 0;
+        virtual void IASetVertexBuffers(uint32 startSlot, uint32 numViews, const NDQ_VERTEX_BUFFER_VIEW* pViews) = 0;
         virtual void VSSetVertexShader(IShader* pShader) = 0;
         virtual void PSSetPixelShader(IShader* pShader) = 0;
         virtual void OMSetRenderTargets(uint32 numViews, IRenderTargetView* const* ppRenderTargetViews, IDepthStencilView* pDepthStencilView) = 0;

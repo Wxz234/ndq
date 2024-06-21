@@ -26,7 +26,7 @@ struct App : public IApplication
         pInputLayout = pGraphicsDevice->CreateInputLayout(InputDesc, 1);
 
         NDQ_BUFFER_DESC BufferDesc{};
-        BufferDesc.SizeInBytes = sizeof(float) * 4 * 3;
+        BufferDesc.SizeInBytes = sizeof(float) * 12;
         pVertex = pGraphicsDevice->AllocateBuffer(&BufferDesc, NDQ_RESOURCE_HEAP_TYPE::UPLOAD, NDQ_RESOURCE_STATE::UNIVERSAL_READ);
     }
 
