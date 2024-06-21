@@ -57,6 +57,17 @@ struct App : public IApplication
         mVBV.StrideInBytes = VertexStrideInBytes;
         mVBV.SizeInBytes = VertexSizeInBytes;
 
+        mViewport.TopLeftX = 0.f;
+        mViewport.TopLeftY = 0.f;
+        mViewport.Width = static_cast<float>(Width);
+        mViewport.Height = static_cast<float>(Height);
+        mViewport.MinDepth = 0.f;
+        mViewport.MaxDepth = 1.f;
+
+        mRect.Top = 0;
+        mRect.Left = 0;
+        mRect.Right = Width;
+        mRect.Bottom = Height;
     }
 
     void Update(float t)
@@ -72,6 +83,8 @@ struct App : public IApplication
         pCmdList->IASetVertexBuffers(0, 1, &mVBV);
         pCmdList->OMSetRenderTargets(1, CurrentRTVArray, nullptr);
         pCmdList->VSSetVertexShader(pVertexShader.get());
+        pCmdList->RSSetViewports(1, &mViewport);
+        pCmdList->RSSetScissorRects(1, &mRect);
         pCmdList->PSSetPixelShader(pPixelShader.get());
         pCmdList->ResourceBarrier(CurrentTexture.get(), NDQ_RESOURCE_STATE::PRESENT, NDQ_RESOURCE_STATE::RENDER_TARGET);
         float Color[4] = { 1.0f, 0.3f, 0.6f, 1.0f };
@@ -89,6 +102,8 @@ struct App : public IApplication
     std::shared_ptr<IGraphicsBuffer> pVertex;
 
     NDQ_VERTEX_BUFFER_VIEW mVBV{};
+    NDQ_VIEWPORT mViewport{};
+    NDQ_RECT mRect{};
 };
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
