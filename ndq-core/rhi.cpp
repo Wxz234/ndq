@@ -525,6 +525,18 @@ namespace Internal
             }
         }
 
+        void RSSetScissorRects(ndq::uint32 numRects, const ndq::NDQ_RECT* pRects)
+        {
+            const D3D12_RECT* pR = reinterpret_cast<const D3D12_RECT*>(pRects);
+            pList->RSSetScissorRects(numRects, pR);
+        }
+
+        void RSSetViewports(ndq::uint32 numViewports, const ndq::NDQ_VIEWPORT* pViewports)
+        {
+            const D3D12_VIEWPORT* pVp = reinterpret_cast<const D3D12_VIEWPORT*>(pViewports);
+            pList->RSSetViewports(numViewports, pVp);
+        }
+
         void PSSetPixelShader(ndq::IShader* pShader)
         {
             if (auto TempShader = dynamic_cast<Shader*>(pShader); mPipelineDesc.pPixelBlob != TempShader->pBlob)
