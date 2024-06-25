@@ -89,6 +89,7 @@ struct App : public IApplication
         pCmdList->ResourceBarrier(CurrentTexture.get(), NDQ_RESOURCE_STATE::PRESENT, NDQ_RESOURCE_STATE::RENDER_TARGET);
         float Color[4] = { 1.0f, 0.3f, 0.6f, 1.0f };
         pCmdList->ClearRenderTargetView(CurrentRTV.get(), Color);
+        pCmdList->DrawInstanced(3, 1, 0, 0);
         pCmdList->ResourceBarrier(CurrentTexture.get(), NDQ_RESOURCE_STATE::RENDER_TARGET, NDQ_RESOURCE_STATE::PRESENT);
         pCmdList->Close();
         pGraphicsDevice->ExecuteCommandList(pCmdList.get());

@@ -28,6 +28,8 @@ typedef HRESULT(WINAPI* PfnCreateFactory2)(UINT Flags, REFIID riid, void** ppFac
 std::string RemoveTrailingNumbers(const std::string& input);
 ndq::uint32 ExtractTrailingNumbers(const std::string& input);
 
+#pragma comment(lib,"d3d12.lib")
+
 namespace ndq
 {
     std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, const wchar_t* entryPoint, NDQ_SHADER_TYPE shaderType, const NDQ_SHADER_DEFINE* pDefines, uint32 defineCount);
@@ -160,7 +162,7 @@ namespace Internal
         {
             for (ndq::uint32 i = 0; i < numElements; ++i)
             {
-                auto RealName = RemoveTrailingNumbers(mDesc[i].SemanticName);
+                RealName = RemoveTrailingNumbers(mDesc[i].SemanticName);
                 auto RealIndex = ExtractTrailingNumbers(mDesc[i].SemanticName);
 
                 D3D12_INPUT_ELEMENT_DESC Desc;
@@ -180,6 +182,9 @@ namespace Internal
 
         std::vector<ndq::NDQ_INPUT_ELEMENT_DESC> mDesc;
         std::vector<D3D12_INPUT_ELEMENT_DESC> mRawInputElementDescs;
+
+        std::string RealName;
+
     };
 
     class RenderTargetView : public ndq::IRenderTargetView
@@ -555,14 +560,21 @@ namespace Internal
 
         void DrawInstanced(ndq::uint32 VertexCountPerInstance, ndq::uint32 InstanceCount, ndq::uint32 StartVertexLocation, ndq::uint32 StartInstanceLocation)
         {
-            _MakePipeline();
-            pList->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation);
-        }
+            if (bPSODirty)
+            {
+                BuildGraphicsRootSignature();
+                mPipelineDesc.mCacheGraphicsPSO.pRootSignature = pPipelineRootSignature.Get();
 
-        void DrawIndexedInstanced(ndq::uint32 IndexCountPerInstance, ndq::uint32 InstanceCount, ndq::uint32 StartIndexLocation, ndq::int32 BaseVertexLocation, ndq::uint32 StartInstanceLocation)
-        {
-            _MakePipeline();
-            pList->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+                Microsoft::WRL::ComPtr<ID3D12Device> pDevice;
+                pList->GetDevice(IID_PPV_ARGS(&pDevice));
+
+                pDevice->CreateGraphicsPipelineState(&mPipelineDesc.mCacheGraphicsPSO, IID_PPV_ARGS(&pPipeline));
+                //pDevice->createinputlauout
+            }
+
+            pList->SetPipelineState(pPipeline.Get());
+            pList->SetGraphicsRootSignature(pPipelineRootSignature.Get());
+            pList->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation);
         }
 
         ndq::NDQ_COMMAND_LIST_TYPE GetType() const
@@ -575,11 +587,6 @@ namespace Internal
             return pList.Get();
         }
 
-        void _MakePipeline()
-        {
-            _BuildGraphicsRootSignature();
-        }
-
         bool _CanUse()
         {
             auto TempPtr = dynamic_cast<GraphicsDeviceInterface*>(ndq::GetGraphicsDevice().get());
@@ -587,10 +594,34 @@ namespace Internal
             return CompletedFenceValue >= mValue;
         }
 
-        void _BuildGraphicsRootSignature()
+        void BuildGraphicsRootSignature()
         {
+            mDescriptorRanges.clear();
+            mRootParameters.clear();
+
             _ParseShaderDesc(mPipelineDesc.pVertexReflection);
             _ParseShaderDesc(mPipelineDesc.pPixelReflection);
+
+            const D3D12_VERSIONED_ROOT_SIGNATURE_DESC RootSignaureDesc =
+            {
+                .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
+                .Desc_1_1 =
+                {
+                    .NumParameters = static_cast<UINT>(mRootParameters.size()),
+                    .pParameters = mRootParameters.empty() ? nullptr : mRootParameters.data(),
+                    .NumStaticSamplers = 0,
+                    .pStaticSamplers = nullptr,
+                    .Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED,
+                },
+            };
+
+            Microsoft::WRL::ComPtr<ID3DBlob> pBlob;
+            D3DX12SerializeVersionedRootSignature(&RootSignaureDesc, D3D_ROOT_SIGNATURE_VERSION_1_1, &pBlob, nullptr);
+
+            Microsoft::WRL::ComPtr<ID3D12Device> pDevice;
+            pList->GetDevice(IID_PPV_ARGS(&pDevice));
+
+            pDevice->CreateRootSignature(NDQ_NODE_MASK, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), IID_PPV_ARGS(&pPipelineRootSignature));
         }
 
         void _ParseShaderDesc(Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pReflection)
@@ -601,6 +632,45 @@ namespace Internal
             {
                 D3D12_SHADER_INPUT_BIND_DESC BindDesc;
                 pReflection->GetResourceBindingDesc(i, &BindDesc);
+
+                // todo
+                //if (BindDesc.Type == D3D_SIT_CBUFFER)
+                //{
+                //    const D3D12_ROOT_PARAMETER1 RootParameter
+                //    {
+                //        .ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
+                //        .Descriptor
+                //        {
+                //            .ShaderRegister = BindDesc.BindPoint,
+                //            .RegisterSpace = BindDesc.Space,
+                //            .Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
+                //        },
+                //    };
+
+                //    mRootParameters.emplace_back(RootParameter);
+                //}
+                //else if (BindDesc.Type == D3D_SIT_TEXTURE)
+                //{
+                //    const CD3DX12_DESCRIPTOR_RANGE1 srvRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+                //        1,
+                //        BindDesc.BindPoint,
+                //        BindDesc.Space,
+                //        D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
+
+                //    mDescriptorRanges.emplace_back(srvRange);
+
+                //    const D3D12_ROOT_PARAMETER1 rootParameter
+                //    {
+                //        .ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+                //        .DescriptorTable =
+                //        {
+                //            .NumDescriptorRanges = 1,
+                //            .pDescriptorRanges = &mDescriptorRanges.back(),
+                //        },
+                //        .ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL,
+                //    };
+                //    mRootParameters.emplace_back(rootParameter);
+                //}
             }
         }
 
@@ -613,6 +683,11 @@ namespace Internal
         PIPELINE_DESC mPipelineDesc;
         RTCache mRTCahce;
         ndq::IInputLayout* pInputLayoutCache;
+
+        std::vector<CD3DX12_DESCRIPTOR_RANGE1> mDescriptorRanges;
+        std::vector<D3D12_ROOT_PARAMETER1> mRootParameters;
+        Microsoft::WRL::ComPtr<ID3D12RootSignature> pPipelineRootSignature;
+        Microsoft::WRL::ComPtr<ID3D12PipelineState> pPipeline;
 
         bool bPSODirty;
     };

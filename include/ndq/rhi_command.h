@@ -51,7 +51,6 @@ namespace ndq
         virtual void ResourceBarrier(IGraphicsResource* pRes, NDQ_RESOURCE_STATE brfore, NDQ_RESOURCE_STATE after) = 0;
         virtual void ClearRenderTargetView(IRenderTargetView* pRTV, const float colorRGBA[4]) = 0;
         virtual void DrawInstanced(uint32 VertexCountPerInstance, uint32 InstanceCount, uint32 StartVertexLocation, uint32 StartInstanceLocation) = 0;
-        virtual void DrawIndexedInstanced(uint32 IndexCountPerInstance, uint32 InstanceCount, uint32 StartIndexLocation, int32 BaseVertexLocation, uint32 StartInstanceLocation) = 0;
         virtual void Close() = 0;
         virtual NDQ_COMMAND_LIST_TYPE GetType() const = 0;
 
