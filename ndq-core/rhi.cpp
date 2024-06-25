@@ -438,6 +438,7 @@ namespace Internal
             this->pList = pList;
             bPSODirty = false;
             pInputLayoutCache = nullptr;
+            pList->GetDevice(IID_PPV_ARGS(&pDevice));
         }
 
         void Open()
@@ -565,11 +566,7 @@ namespace Internal
                 BuildGraphicsRootSignature();
                 mPipelineDesc.mCacheGraphicsPSO.pRootSignature = pPipelineRootSignature.Get();
 
-                Microsoft::WRL::ComPtr<ID3D12Device> pDevice;
-                pList->GetDevice(IID_PPV_ARGS(&pDevice));
-
                 pDevice->CreateGraphicsPipelineState(&mPipelineDesc.mCacheGraphicsPSO, IID_PPV_ARGS(&pPipeline));
-                //pDevice->createinputlauout
             }
 
             pList->SetPipelineState(pPipeline.Get());
@@ -617,9 +614,6 @@ namespace Internal
 
             Microsoft::WRL::ComPtr<ID3DBlob> pBlob;
             D3DX12SerializeVersionedRootSignature(&RootSignaureDesc, D3D_ROOT_SIGNATURE_VERSION_1_1, &pBlob, nullptr);
-
-            Microsoft::WRL::ComPtr<ID3D12Device> pDevice;
-            pList->GetDevice(IID_PPV_ARGS(&pDevice));
 
             pDevice->CreateRootSignature(NDQ_NODE_MASK, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), IID_PPV_ARGS(&pPipelineRootSignature));
         }
@@ -688,6 +682,7 @@ namespace Internal
         std::vector<D3D12_ROOT_PARAMETER1> mRootParameters;
         Microsoft::WRL::ComPtr<ID3D12RootSignature> pPipelineRootSignature;
         Microsoft::WRL::ComPtr<ID3D12PipelineState> pPipeline;
+        Microsoft::WRL::ComPtr<ID3D12Device> pDevice;
 
         bool bPSODirty;
     };
