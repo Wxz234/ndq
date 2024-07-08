@@ -28,8 +28,6 @@ typedef HRESULT(WINAPI* PfnCreateFactory2)(UINT Flags, REFIID riid, void** ppFac
 std::string RemoveTrailingNumbers(const std::string& input);
 ndq::uint32 ExtractTrailingNumbers(const std::string& input);
 
-#pragma comment(lib,"d3d12.lib")
-
 namespace ndq
 {
     std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, const wchar_t* entryPoint, NDQ_SHADER_TYPE shaderType, const NDQ_SHADER_DEFINE* pDefines, uint32 defineCount);
@@ -180,17 +178,31 @@ namespace Internal
 
         ndq::NDQ_INPUT_ELEMENT_DESC GetDesc(ndq::uint32 index) const { return mDesc[index]; }
 
+        const D3D12_INPUT_ELEMENT_DESC* GetData() const
+        {
+            return mRawInputElementDescs.data();
+        }
+
+        ndq::uint32 GetCount() const
+        {
+            return static_cast<ndq::uint32>(mRawInputElementDescs.size());
+        }
+
+        bool IsEmpty() const
+        {
+            return mRawInputElementDescs.empty();
+        }
+
+    private:
         std::vector<ndq::NDQ_INPUT_ELEMENT_DESC> mDesc;
         std::vector<D3D12_INPUT_ELEMENT_DESC> mRawInputElementDescs;
-
         std::string RealName;
-
     };
 
     class RenderTargetView : public ndq::IRenderTargetView
     {
     public:
-        RenderTargetView(const ndq::NDQ_RENDER_TARGET_VIEW_DESC* pDesc, D3D12_CPU_DESCRIPTOR_HANDLE handle) : mDesc(*pDesc), mHandle(handle) {}
+        RenderTargetView(const ndq::NDQ_RENDER_TARGET_VIEW_DESC* pDesc, D3D12_CPU_DESCRIPTOR_HANDLE handle, bool isInternal = false) : mDesc(*pDesc), mHandle(handle), bIsInternal(isInternal) {}
 
         ndq::NDQ_RENDER_TARGET_VIEW_DESC GetDesc() const
         {
@@ -202,8 +214,15 @@ namespace Internal
             return mHandle.ptr;
         }
 
+        bool IsInternalRTV() const
+        {
+            return bIsInternal;
+        }
+    private:
         ndq::NDQ_RENDER_TARGET_VIEW_DESC mDesc;
         D3D12_CPU_DESCRIPTOR_HANDLE mHandle;
+
+        bool bIsInternal;
     };
 
     class DepthStencilView : public ndq::IDepthStencilView
@@ -231,10 +250,7 @@ namespace Internal
         Shader(ndq::NDQ_SHADER_TYPE type, Microsoft::WRL::ComPtr<IDxcBlob> pBlob, Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pReflection)
             : mType(type), pBlob(pBlob), pReflection(pReflection) {}
 
-        ndq::NDQ_SHADER_TYPE GetShaderType() const
-        {
-            return mType;
-        }
+        ndq::NDQ_SHADER_TYPE GetShaderType() const { return mType; }
 
         void* GetBlobPointer() const
         {
@@ -270,30 +286,12 @@ namespace Internal
     {
     public:
         GraphicsBuffer(Microsoft::WRL::ComPtr<ID3D12Resource> pResource,const ndq::NDQ_BUFFER_DESC *pDesc) : pResource(pResource), mDesc(*pDesc) {}
-
-
-        void Map(void** ppData)
-        {
-            pResource->Map(0, nullptr, ppData);
-        }
-
-        void Unmap()
-        {
-            pResource->Unmap(0, nullptr);
-        }
-
-        ndq::NDQ_BUFFER_DESC GetDesc() const
-        {
-            return mDesc;
-        }
-
-        ndq::uint64 GetGPUVirtualAddress() const
-        {
-            return pResource->GetGPUVirtualAddress();
-        }
-
+        void Map(void** ppData) { pResource->Map(0, nullptr, ppData); }
+        void Unmap() { pResource->Unmap(0, nullptr); }
+        ndq::NDQ_BUFFER_DESC GetDesc() const { return mDesc; }
+        ndq::uint64 GetGPUVirtualAddress() const { return pResource->GetGPUVirtualAddress(); }
         void* GetRawPtr() const { return pResource.Get(); }
-
+    private:
         Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
         ndq::NDQ_BUFFER_DESC mDesc;
     };
@@ -305,140 +303,313 @@ namespace Internal
         ndq::NDQ_TEXTURE2D_DESC GetDesc() const { return mDesc; }
         ndq::uint64 GetGPUVirtualAddress() const { return pResource->GetGPUVirtualAddress(); }
         void* GetRawPtr() const { return pResource.Get(); }
+    private:
         Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
         ndq::NDQ_TEXTURE2D_DESC mDesc;
     };
 
-    class CommandList : public ndq::ICommandList
+    class PipelineCache
     {
-        struct RTCache
+    public:
+        PipelineCache(Microsoft::WRL::ComPtr<ID3D12Device> pDevice)
         {
-            ndq::uint32 NumViews;
-            ndq::IRenderTargetView* RenderTargetViews[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
-            ndq::IDepthStencilView* DepthStencilView;
-            std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> RawRTs;
-            D3D12_CPU_DESCRIPTOR_HANDLE RawDS;
-
-            RTCache() :NumViews(0), RenderTargetViews{ nullptr }, DepthStencilView(nullptr), RawRTs(), RawDS{} {}
-
-            RTCache(ndq::uint32 numViews, ndq::IRenderTargetView* const* ppRenderTargetViews, ndq::IDepthStencilView* pDepthStencilView)
+            mCacheGraphicsPSO = {};
+            mCacheGraphicsPSO.pRootSignature = nullptr;
+            mCacheGraphicsPSO.VS = {};
+            mCacheGraphicsPSO.PS = {};
+            mCacheGraphicsPSO.DS = {};
+            mCacheGraphicsPSO.HS = {};
+            mCacheGraphicsPSO.GS = {};
+            mCacheGraphicsPSO.StreamOutput = {};
+            mCacheGraphicsPSO.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+            mCacheGraphicsPSO.SampleMask = 0xffffffff;
+            mCacheGraphicsPSO.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+            mCacheGraphicsPSO.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+            mCacheGraphicsPSO.InputLayout = { nullptr, 0 };
+            mCacheGraphicsPSO.IBStripCutValue = {};
+            mCacheGraphicsPSO.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+            mCacheGraphicsPSO.NumRenderTargets = 0;
+            for (UINT i = 0; i < 8; ++i)
             {
-                NumViews = numViews;
-                for (ndq::uint32 i = 0; i < NumViews; ++i)
+                mCacheGraphicsPSO.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
+            }
+            mCacheGraphicsPSO.DSVFormat = DXGI_FORMAT_UNKNOWN;
+            mCacheGraphicsPSO.SampleDesc.Count = 1;
+            mCacheGraphicsPSO.SampleDesc.Quality = 0;
+            mCacheGraphicsPSO.NodeMask = NDQ_NODE_MASK;
+            mCacheGraphicsPSO.CachedPSO = {};
+            mCacheGraphicsPSO.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+
+            pDeviceCache = pDevice;
+
+            pVertexShaderCache = nullptr;
+            pPixelShaderCache = nullptr;
+            pInputLayoutCache = nullptr;
+            mTopology = ndq::NDQ_PRIMITIVE_TOPOLOGY::UNDEFINED;
+        }
+
+        void UpdateRT(ndq::uint32 numViews, ndq::IRenderTargetView* const* ppRenderTargetViews)
+        {
+            mCacheGraphicsPSO.NumRenderTargets = numViews;
+            for (ndq::uint32 i = 0; i < numViews; ++i)
+            {
+                auto Desc = ppRenderTargetViews[i]->GetDesc();
+                mCacheGraphicsPSO.RTVFormats[i] = GetRawResourceFormat(Desc.Format);
+            }
+        }
+
+        void UpdateDS(ndq::IDepthStencilView* pDepthStencilView)
+        {
+            if (pDepthStencilView)
+            {
+                auto Desc = pDepthStencilView->GetDesc();
+                mCacheGraphicsPSO.DSVFormat = GetRawResourceFormat(Desc.Format);
+            }
+        }
+
+        bool Update(ndq::IInputLayout* pLayout)
+        {
+            if (pInputLayoutCache != pLayout)
+            {
+                pInputLayoutCache = pLayout;
+                auto pTemp = dynamic_cast<InputLayout*>(pInputLayoutCache);
+                mCacheGraphicsPSO.InputLayout = { pTemp->IsEmpty() ? nullptr : pTemp->GetData(), pTemp->GetCount() };
+                return true;
+            }
+            return false;
+        }
+
+        bool Update(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)
+        {
+            if (mTopology != topology)
+            {
+                mTopology = topology;
+                mCacheGraphicsPSO.PrimitiveTopologyType = GetPrimitiveTopologyType(mTopology);
+                return true;
+            }
+            return false;
+        }
+
+        bool Update(ndq::NDQ_SHADER_TYPE type, ndq::IShader* pShader)
+        {
+            if (type == ndq::NDQ_SHADER_TYPE::VERTEX)
+            {
+                if (pVertexShaderCache != pShader)
                 {
-                    RenderTargetViews[i] = ppRenderTargetViews[i];
-                    D3D12_CPU_DESCRIPTOR_HANDLE Handle;
-                    Handle.ptr = RenderTargetViews[i]->GetHandle();
-                    RawRTs.emplace_back(Handle);
-                }
-                DepthStencilView = pDepthStencilView;
-                if (DepthStencilView)
-                {
-                    RawDS.ptr = DepthStencilView->GetHandle();
+                    pVertexShaderCache = pShader;
+                    auto TempShader = dynamic_cast<Shader*>(pVertexShaderCache);
+                    pVertexBlob = TempShader->pBlob;
+                    pVertexReflection = TempShader->pReflection;
+                    mCacheGraphicsPSO.VS = CD3DX12_SHADER_BYTECODE(pVertexBlob->GetBufferPointer(), pVertexBlob->GetBufferSize());
+                    return true;
                 }
             }
-
-            bool operator==(const RTCache& other) const
+            else if (type == ndq::NDQ_SHADER_TYPE::PIXEL)
             {
-                if (NumViews != other.NumViews || DepthStencilView != other.DepthStencilView)
+                if (pPixelShaderCache != pShader)
                 {
+                    pPixelShaderCache = pShader;
+                    auto TempShader = dynamic_cast<Shader*>(pPixelShaderCache);
+                    pPixelBlob = TempShader->pBlob;
+                    pPixelReflection = TempShader->pReflection;
+                    mCacheGraphicsPSO.PS = CD3DX12_SHADER_BYTECODE(pPixelBlob->GetBufferPointer(), pPixelBlob->GetBufferSize());
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        void BuildGraphicsRootSignature()
+        {
+            // todo
+            const D3D12_VERSIONED_ROOT_SIGNATURE_DESC RootSignaureDesc =
+            {
+                .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
+                .Desc_1_1 =
+                {
+                    .NumParameters = 0,
+                    .pParameters = nullptr,
+                    .NumStaticSamplers = 0,
+                    .pStaticSamplers = nullptr,
+                    .Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | 
+                             D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED | 
+                             D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED,
+                },
+            };
+
+            Microsoft::WRL::ComPtr<ID3DBlob> pBlob;
+
+            static HMODULE D3D12 = LoadLibraryW(L"d3d12.dll");
+            auto _D3D12SerializeVersionedRootSignature = (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)GetProcAddress(D3D12, "D3D12SerializeVersionedRootSignature");
+            _D3D12SerializeVersionedRootSignature(&RootSignaureDesc, &pBlob, nullptr);
+
+            pDeviceCache->CreateRootSignature(NDQ_NODE_MASK, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), IID_PPV_ARGS(&pRootSignature));
+
+            mCacheGraphicsPSO.pRootSignature = pRootSignature.Get();
+        }
+
+        void BuildPipeline()
+        {
+            pDeviceCache->CreateGraphicsPipelineState(&mCacheGraphicsPSO, IID_PPV_ARGS(&pPipeline));
+        }
+
+        ID3D12RootSignature* GetRootSignature() const
+        {
+            return pRootSignature.Get();
+        }
+
+        ID3D12PipelineState* GetPipeline() const
+        {
+            return pPipeline.Get();
+        }
+
+    private:
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC mCacheGraphicsPSO;
+
+        Microsoft::WRL::ComPtr<ID3D12Device> pDeviceCache;
+
+        Microsoft::WRL::ComPtr<IDxcBlob> pVertexBlob;
+        Microsoft::WRL::ComPtr<IDxcBlob> pPixelBlob;
+        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pVertexReflection;
+        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pPixelReflection;
+
+        Microsoft::WRL::ComPtr<ID3D12RootSignature> pRootSignature;
+        Microsoft::WRL::ComPtr<ID3D12PipelineState> pPipeline;
+
+        ndq::IShader* pVertexShaderCache;
+        ndq::IShader* pPixelShaderCache;
+        ndq::IInputLayout* pInputLayoutCache;
+        ndq::NDQ_PRIMITIVE_TOPOLOGY mTopology;
+    };
+
+    class RenderTargetCache
+    {
+    public:
+        RenderTargetCache() : RenderTargetViews{ nullptr }, bIsInternalRT(false), mRTCount(0)
+        {
+            RawRTs.resize(D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT);
+        }
+
+        bool Update(ndq::uint32 numViews, ndq::IRenderTargetView* const* ppRenderTargetViews)
+        {
+            if (IsEqual(numViews, ppRenderTargetViews))
+            {
+                return false;
+            }
+
+            if (numViews == 1 && dynamic_cast<RenderTargetView*>(ppRenderTargetViews[0])->IsInternalRTV())
+            {
+                if (mRTCount == 1 && bIsInternalRT)
+                {
+                    RenderTargetViews[0] = ppRenderTargetViews[0];
+                    RawRTs[0].ptr = RenderTargetViews[0]->GetHandle();
                     return false;
                 }
 
-                for (ndq::uint32 i = 0; i < NumViews; ++i)
-                {
-                    if (RenderTargetViews[i] != other.RenderTargetViews[i])
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
+                bIsInternalRT = true;
             }
-
-            void Update(const RTCache& other)
+            else
             {
-                NumViews = other.NumViews;
-                for (ndq::uint32 i = 0; i < NumViews; ++i)
-                {
-                    RenderTargetViews[i] = other.RenderTargetViews[i];
-                }
-                DepthStencilView = other.DepthStencilView;
-                RawRTs = other.RawRTs;
-                RawDS = other.RawDS;
+                bIsInternalRT = false;
             }
 
-            const D3D12_CPU_DESCRIPTOR_HANDLE* GetRawRTs() const
+            mRTCount = numViews;
+            for (ndq::uint32 i = 0;i < mRTCount; ++i)
             {
-                if (NumViews)
-                {
-                    return RawRTs.data();
-                }
-                return nullptr;
+                RenderTargetViews[i] = ppRenderTargetViews[i];
+                RawRTs[i].ptr = RenderTargetViews[i]->GetHandle();
             }
+            return true;
+        }
 
-            const D3D12_CPU_DESCRIPTOR_HANDLE* GetRawDS() const
-            {
-                if (DepthStencilView)
-                {
-                    return &RawDS;
-                }
-                return nullptr;
-            }
-        };
-
-        struct PIPELINE_DESC
+        const D3D12_CPU_DESCRIPTOR_HANDLE* GetHandle() const
         {
-            PIPELINE_DESC()
+            return RawRTs.data();
+        }
+
+    private:
+        bool IsEqual(ndq::uint32 numViews, ndq::IRenderTargetView* const* ppRenderTargetViews) const
+        {
+            if (mRTCount != numViews)
             {
-                mCacheGraphicsPSO = {};
-                mCacheGraphicsPSO.pRootSignature = nullptr;
-                mCacheGraphicsPSO.VS = {};
-                mCacheGraphicsPSO.PS = {};
-                mCacheGraphicsPSO.DS = {};
-                mCacheGraphicsPSO.HS = {};
-                mCacheGraphicsPSO.GS = {};
-                mCacheGraphicsPSO.StreamOutput = {};
-                mCacheGraphicsPSO.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-                mCacheGraphicsPSO.SampleMask = 0xffffffff;
-                mCacheGraphicsPSO.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-                mCacheGraphicsPSO.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-                mCacheGraphicsPSO.InputLayout = { nullptr, 0 };
-                mCacheGraphicsPSO.IBStripCutValue = {};
-                mCacheGraphicsPSO.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
-                mCacheGraphicsPSO.NumRenderTargets = 0;
-                for (UINT i = 0; i < 8; ++i)
+                return false;
+            }
+            for (ndq::uint32 i = 0; i < numViews; ++i)
+            {
+                if (RenderTargetViews[i] != ppRenderTargetViews[i])
                 {
-                    mCacheGraphicsPSO.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
+                    return false;
                 }
-                mCacheGraphicsPSO.DSVFormat = DXGI_FORMAT_UNKNOWN;
-                mCacheGraphicsPSO.SampleDesc.Count = 1;
-                mCacheGraphicsPSO.SampleDesc.Quality = 0;
-                mCacheGraphicsPSO.NodeMask = NDQ_NODE_MASK;
-                mCacheGraphicsPSO.CachedPSO = {};
-                mCacheGraphicsPSO.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+            }
+            return true;
+        }
+
+        ndq::IRenderTargetView* RenderTargetViews[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
+        std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> RawRTs;
+
+        ndq::uint32 mRTCount;
+
+        bool bIsInternalRT;
+    };
+
+    class DepthStencilCache
+    {
+    public:
+        DepthStencilCache() : pDepthStencilViewCache(nullptr), mRawDS{} {}
+
+        bool Update(ndq::IDepthStencilView* pDepthStencilView)
+        {
+            if (pDepthStencilViewCache == pDepthStencilView)
+            {
+                return false;
             }
 
-            D3D12_GRAPHICS_PIPELINE_STATE_DESC mCacheGraphicsPSO;
+            pDepthStencilViewCache = pDepthStencilView;
+            if (pDepthStencilViewCache)
+            {
+                mRawDS.ptr = pDepthStencilViewCache->GetHandle();
+            }
+            return true;
+        }
 
-            Microsoft::WRL::ComPtr<IDxcBlob> pVertexBlob;
-            Microsoft::WRL::ComPtr<IDxcBlob> pPixelBlob;
+        const D3D12_CPU_DESCRIPTOR_HANDLE* GetHandle() const
+        {
+            if (pDepthStencilViewCache)
+            {
+                return &mRawDS;
+            }
+            return nullptr;
+        }
+    private:
+        ndq::IDepthStencilView* pDepthStencilViewCache;
+        D3D12_CPU_DESCRIPTOR_HANDLE mRawDS;
+    };
 
-            Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pVertexReflection;
-            Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pPixelReflection;
-        };
-
+    class CommandList : public ndq::ICommandList
+    {
     public:
-        CommandList(ndq::NDQ_COMMAND_LIST_TYPE type, Microsoft::WRL::ComPtr<ID3D12CommandAllocator> pAllocator, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList)
+        CommandList(ndq::NDQ_COMMAND_LIST_TYPE type, Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> list)
         {
             bIsBusy.store(true);
             mValue = 0;
             mType = type;
-            this->pAllocator = pAllocator;
-            this->pList = pList;
-            bPSODirty = false;
-            pInputLayoutCache = nullptr;
+            pAllocator = allocator;
+            pList = list;
+            bNeedUpdatePSO = false;
+
+            Microsoft::WRL::ComPtr<ID3D12Device> pDevice;
             pList->GetDevice(IID_PPV_ARGS(&pDevice));
+
+            pPipelineCache = new PipelineCache(pDevice);
+            pRTCache = new RenderTargetCache;
+            pDSCache = new DepthStencilCache;
+        }
+
+        ~CommandList()
+        {
+            delete pPipelineCache;
+            delete pRTCache;
+            delete pDSCache;
         }
 
         void Open()
@@ -468,49 +639,32 @@ namespace Internal
 
         void OMSetRenderTargets(ndq::uint32 numViews, ndq::IRenderTargetView* const* ppRenderTargetViews, ndq::IDepthStencilView* pDepthStencilView)
         {
-            RTCache TempCache(numViews, ppRenderTargetViews, pDepthStencilView);
-
-            if (mRTCahce != TempCache)
+            if (pRTCache->Update(numViews, ppRenderTargetViews))
             {
-                mPipelineDesc.mCacheGraphicsPSO.NumRenderTargets = numViews;
-                for (ndq::size_type i = 0; i < numViews; ++i)
-                {
-                    auto Desc = ppRenderTargetViews[i]->GetDesc();
-                    mPipelineDesc.mCacheGraphicsPSO.RTVFormats[i] = GetRawResourceFormat(Desc.Format);
-                }
-                if (pDepthStencilView)
-                {
-                    auto Desc = pDepthStencilView->GetDesc();
-                    mPipelineDesc.mCacheGraphicsPSO.DSVFormat = GetRawResourceFormat(Desc.Format);
-                }
-                mRTCahce.Update(TempCache);
-                bPSODirty = true;
+                pPipelineCache->UpdateRT(numViews, ppRenderTargetViews);
+                bNeedUpdatePSO = true;
             }
 
-            auto TempRTHandles = mRTCahce.GetRawRTs();
-            auto TempDSHandle = mRTCahce.GetRawDS();
+            if (pDSCache->Update(pDepthStencilView))
+            {
+                pPipelineCache->UpdateDS(pDepthStencilView);
+                bNeedUpdatePSO = true;
+            }
+
+            const D3D12_CPU_DESCRIPTOR_HANDLE* TempRTHandles = pRTCache->GetHandle();
+            const D3D12_CPU_DESCRIPTOR_HANDLE* TempDSHandle = pDSCache->GetHandle();
 
             pList->OMSetRenderTargets(numViews, TempRTHandles, FALSE, TempDSHandle);
         }
 
         void IASetInputLayout(ndq::IInputLayout* pInputLayout)
         {
-            if (pInputLayoutCache != pInputLayout)
-            {
-                pInputLayoutCache = pInputLayout;
-                auto pTemp = dynamic_cast<InputLayout*>(pInputLayoutCache);
-                mPipelineDesc.mCacheGraphicsPSO.InputLayout = { pTemp->mRawInputElementDescs.empty() ? nullptr : pTemp->mRawInputElementDescs.data(), static_cast<UINT>(pTemp->mRawInputElementDescs.size()) };
-                bPSODirty = true;
-            }
+            bNeedUpdatePSO = pPipelineCache->Update(pInputLayout);
         }
 
         void IASetPrimitiveTopology(ndq::NDQ_PRIMITIVE_TOPOLOGY topology)
         {
-            if (auto Temp = GetPrimitiveTopologyType(topology); Temp != mPipelineDesc.mCacheGraphicsPSO.PrimitiveTopologyType)
-            {
-                mPipelineDesc.mCacheGraphicsPSO.PrimitiveTopologyType = Temp;
-                bPSODirty = true;
-            }
+            bNeedUpdatePSO = pPipelineCache->Update(topology);
             pList->IASetPrimitiveTopology(static_cast<D3D12_PRIMITIVE_TOPOLOGY>(topology));
         }
 
@@ -522,13 +676,7 @@ namespace Internal
 
         void VSSetVertexShader(ndq::IShader* pShader)
         {
-            if (auto TempShader = dynamic_cast<Shader*>(pShader); mPipelineDesc.pVertexBlob != TempShader->pBlob)
-            {
-                mPipelineDesc.pVertexBlob = TempShader->pBlob;
-                mPipelineDesc.pVertexReflection = TempShader->pReflection;
-                mPipelineDesc.mCacheGraphicsPSO.VS = CD3DX12_SHADER_BYTECODE(mPipelineDesc.pVertexBlob->GetBufferPointer(), mPipelineDesc.pVertexBlob->GetBufferSize());
-                bPSODirty = true;
-            }
+            bNeedUpdatePSO = pPipelineCache->Update(ndq::NDQ_SHADER_TYPE::VERTEX, pShader);
         }
 
         void RSSetScissorRects(ndq::uint32 numRects, const ndq::NDQ_RECT* pRects)
@@ -545,13 +693,7 @@ namespace Internal
 
         void PSSetPixelShader(ndq::IShader* pShader)
         {
-            if (auto TempShader = dynamic_cast<Shader*>(pShader); mPipelineDesc.pPixelBlob != TempShader->pBlob)
-            {
-                mPipelineDesc.pPixelBlob = TempShader->pBlob;
-                mPipelineDesc.pPixelReflection = TempShader->pReflection;
-                mPipelineDesc.mCacheGraphicsPSO.PS = CD3DX12_SHADER_BYTECODE(mPipelineDesc.pPixelBlob->GetBufferPointer(), mPipelineDesc.pPixelBlob->GetBufferSize());
-                bPSODirty = true;
-            }
+            bNeedUpdatePSO = pPipelineCache->Update(ndq::NDQ_SHADER_TYPE::PIXEL, pShader);
         }
 
         void Close()
@@ -561,16 +703,14 @@ namespace Internal
 
         void DrawInstanced(ndq::uint32 VertexCountPerInstance, ndq::uint32 InstanceCount, ndq::uint32 StartVertexLocation, ndq::uint32 StartInstanceLocation)
         {
-            if (bPSODirty)
+            if (bNeedUpdatePSO)
             {
-                BuildGraphicsRootSignature();
-                mPipelineDesc.mCacheGraphicsPSO.pRootSignature = pPipelineRootSignature.Get();
-
-                pDevice->CreateGraphicsPipelineState(&mPipelineDesc.mCacheGraphicsPSO, IID_PPV_ARGS(&pPipeline));
+                pPipelineCache->BuildGraphicsRootSignature();
+                pPipelineCache->BuildPipeline();
             }
 
-            pList->SetPipelineState(pPipeline.Get());
-            pList->SetGraphicsRootSignature(pPipelineRootSignature.Get());
+            pList->SetPipelineState(pPipelineCache->GetPipeline());
+            pList->SetGraphicsRootSignature(pPipelineCache->GetRootSignature());
             pList->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation);
         }
 
@@ -591,100 +731,17 @@ namespace Internal
             return CompletedFenceValue >= mValue;
         }
 
-        void BuildGraphicsRootSignature()
-        {
-            mDescriptorRanges.clear();
-            mRootParameters.clear();
-
-            _ParseShaderDesc(mPipelineDesc.pVertexReflection);
-            _ParseShaderDesc(mPipelineDesc.pPixelReflection);
-
-            const D3D12_VERSIONED_ROOT_SIGNATURE_DESC RootSignaureDesc =
-            {
-                .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
-                .Desc_1_1 =
-                {
-                    .NumParameters = static_cast<UINT>(mRootParameters.size()),
-                    .pParameters = mRootParameters.empty() ? nullptr : mRootParameters.data(),
-                    .NumStaticSamplers = 0,
-                    .pStaticSamplers = nullptr,
-                    .Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED,
-                },
-            };
-
-            Microsoft::WRL::ComPtr<ID3DBlob> pBlob;
-            D3DX12SerializeVersionedRootSignature(&RootSignaureDesc, D3D_ROOT_SIGNATURE_VERSION_1_1, &pBlob, nullptr);
-
-            pDevice->CreateRootSignature(NDQ_NODE_MASK, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), IID_PPV_ARGS(&pPipelineRootSignature));
-        }
-
-        void _ParseShaderDesc(Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pReflection)
-        {
-            D3D12_SHADER_DESC ShaderDesc;
-            pReflection->GetDesc(&ShaderDesc);
-            for (ndq::uint32 i = 0; i < ShaderDesc.BoundResources; ++i)
-            {
-                D3D12_SHADER_INPUT_BIND_DESC BindDesc;
-                pReflection->GetResourceBindingDesc(i, &BindDesc);
-
-                // todo
-                //if (BindDesc.Type == D3D_SIT_CBUFFER)
-                //{
-                //    const D3D12_ROOT_PARAMETER1 RootParameter
-                //    {
-                //        .ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
-                //        .Descriptor
-                //        {
-                //            .ShaderRegister = BindDesc.BindPoint,
-                //            .RegisterSpace = BindDesc.Space,
-                //            .Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
-                //        },
-                //    };
-
-                //    mRootParameters.emplace_back(RootParameter);
-                //}
-                //else if (BindDesc.Type == D3D_SIT_TEXTURE)
-                //{
-                //    const CD3DX12_DESCRIPTOR_RANGE1 srvRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
-                //        1,
-                //        BindDesc.BindPoint,
-                //        BindDesc.Space,
-                //        D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
-
-                //    mDescriptorRanges.emplace_back(srvRange);
-
-                //    const D3D12_ROOT_PARAMETER1 rootParameter
-                //    {
-                //        .ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
-                //        .DescriptorTable =
-                //        {
-                //            .NumDescriptorRanges = 1,
-                //            .pDescriptorRanges = &mDescriptorRanges.back(),
-                //        },
-                //        .ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL,
-                //    };
-                //    mRootParameters.emplace_back(rootParameter);
-                //}
-            }
-        }
-
         std::atomic_bool bIsBusy;
         ndq::uint64 mValue;
         ndq::NDQ_COMMAND_LIST_TYPE mType;
         Microsoft::WRL::ComPtr<ID3D12CommandAllocator> pAllocator;
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> pList;
 
-        PIPELINE_DESC mPipelineDesc;
-        RTCache mRTCahce;
-        ndq::IInputLayout* pInputLayoutCache;
+        PipelineCache* pPipelineCache;
+        RenderTargetCache* pRTCache;
+        DepthStencilCache* pDSCache;
 
-        std::vector<CD3DX12_DESCRIPTOR_RANGE1> mDescriptorRanges;
-        std::vector<D3D12_ROOT_PARAMETER1> mRootParameters;
-        Microsoft::WRL::ComPtr<ID3D12RootSignature> pPipelineRootSignature;
-        Microsoft::WRL::ComPtr<ID3D12PipelineState> pPipeline;
-        Microsoft::WRL::ComPtr<ID3D12Device> pDevice;
-
-        bool bPSODirty;
+        bool bNeedUpdatePSO;
     };
 
 
@@ -942,7 +999,7 @@ namespace Internal
                 ndqDesc.ViewDimension = ndq::NDQ_RESOURCE_DIMENSION::TEXTURE2D;
                 ndqDesc.Texture2D.MipSlice = 0;
                 ndqDesc.Texture2D.PlaneSlice = 0;
-                std::shared_ptr<RenderTargetView> rtvPrt(new RenderTargetView(&ndqDesc, CpuHandle));
+                std::shared_ptr<RenderTargetView> rtvPrt(new RenderTargetView(&ndqDesc, CpuHandle, true));
                 mInternalRTV.emplace_back(rtvPrt);
 
                 CpuHandle.ptr += RTVDescriptorSize;
@@ -1119,25 +1176,10 @@ namespace Internal
             return retVal;
         }
 
-        ndq::uint32 GetCurrentFrameIndex() const
-        {
-            return mFrameIndex;
-        }
-
-        std::shared_ptr<ndq::IRenderTargetView> GetInternalRenderTargetView(ndq::uint32 index) const
-        {
-            return mInternalRTV[index];
-        }
-
-        std::shared_ptr<ndq::IGraphicsTexture2D> GetInternalSwapchainTexture2D(ndq::uint32 index) const
-        {
-            return pRTObject[index];
-        }
-
-        std::shared_ptr<ndq::IInputLayout> CreateInputLayout(const ndq::NDQ_INPUT_ELEMENT_DESC* pInputElementDescs, ndq::uint32 numElements)
-        {
-            return std::shared_ptr<ndq::IInputLayout>(new InputLayout(pInputElementDescs, numElements));
-        }
+        ndq::uint32 GetCurrentFrameIndex() const { return mFrameIndex; }
+        std::shared_ptr<ndq::IRenderTargetView> GetInternalRenderTargetView(ndq::uint32 index) const { return mInternalRTV[index]; }
+        std::shared_ptr<ndq::IGraphicsTexture2D> GetInternalSwapchainTexture2D(ndq::uint32 index) const { return pRTObject[index]; }
+        std::shared_ptr<ndq::IInputLayout> CreateInputLayout(const ndq::NDQ_INPUT_ELEMENT_DESC* pInputElementDescs, ndq::uint32 numElements) { return std::shared_ptr<ndq::IInputLayout>(new InputLayout(pInputElementDescs, numElements)); }
 
         void RunGarbageCollection()
         {
@@ -1310,7 +1352,6 @@ namespace ndq
 
         Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pReflection;
         pUtils->CreateReflection(&ReflectionData, IID_PPV_ARGS(&pReflection));
-
         return std::shared_ptr<IShader>(new Internal::Shader(shaderType, pShader, pReflection));
     }
 }
