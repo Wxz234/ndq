@@ -30,7 +30,7 @@ struct App : public IApplication
 
         NDQ_INPUT_ELEMENT_DESC InputDesc[] =
         {
-            { "POSITION", NDQ_RESOURCE_FORMAT::R32G32B32A32_FLOAT, 0 }
+            { "POSITION", 0, NDQ_RESOURCE_FORMAT::R32G32B32A32_FLOAT, 0 }
         };
         pInputLayout = pGraphicsDevice->CreateInputLayout(InputDesc, 1);
 

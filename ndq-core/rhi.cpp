@@ -25,9 +25,6 @@
 
 typedef HRESULT(WINAPI* PfnCreateFactory2)(UINT Flags, REFIID riid, void** ppFactory);
 
-std::string RemoveTrailingNumbers(const std::string& input);
-ndq::uint32 ExtractTrailingNumbers(const std::string& input);
-
 namespace ndq
 {
     std::shared_ptr<IShader> CompileShaderFromFile(const wchar_t* filePath, const wchar_t* entryPoint, NDQ_SHADER_TYPE shaderType, const NDQ_SHADER_DEFINE* pDefines, uint32 defineCount);
@@ -160,12 +157,11 @@ namespace Internal
         {
             for (ndq::uint32 i = 0; i < numElements; ++i)
             {
-                RealName = RemoveTrailingNumbers(mDesc[i].SemanticName);
-                auto RealIndex = ExtractTrailingNumbers(mDesc[i].SemanticName);
+                RealName = std::string(mDesc[i].SemanticName);
 
                 D3D12_INPUT_ELEMENT_DESC Desc;
                 Desc.SemanticName = RealName.c_str();
-                Desc.SemanticIndex = RealIndex;
+                Desc.SemanticIndex = mDesc[i].SemanticIndex;
                 Desc.Format = GetRawResourceFormat(mDesc[i].Format);
                 Desc.InputSlot = mDesc[i].InputSlot;
                 Desc.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;

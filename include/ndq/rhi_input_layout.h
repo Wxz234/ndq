@@ -8,6 +8,7 @@ namespace ndq
     struct NDQ_INPUT_ELEMENT_DESC
     {
         const char* SemanticName;
+        uint32 SemanticIndex;
         NDQ_RESOURCE_FORMAT Format;
         int32 InputSlot;
     };

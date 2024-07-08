@@ -138,7 +138,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="rhi.cpp" />
-    <ClCompile Include="util.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
