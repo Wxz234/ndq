@@ -144,6 +144,15 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\ndq\platform.h" />
+    <ClInclude Include="..\include\ndq\rhi.h" />
+    <ClInclude Include="..\include\ndq\rhi_command.h" />
+    <ClInclude Include="..\include\ndq\rhi_format.h" />
+    <ClInclude Include="..\include\ndq\rhi_input_layout.h" />
+    <ClInclude Include="..\include\ndq\rhi_resource.h" />
+    <ClInclude Include="..\include\ndq\rhi_shader.h" />
+    <ClInclude Include="..\include\ndq\rhi_view.h" />
+    <ClInclude Include="..\include\ndq\window.h" />
     <ClInclude Include="ndq_internal.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

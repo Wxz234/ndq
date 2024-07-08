@@ -70,4 +70,6 @@ namespace ndq
     public:
         virtual NDQ_TEXTURE2D_DESC GetDesc() const = 0;
     };
+
+    void CopyFromCpuToGpu(void* pSrc, IGraphicsBuffer* pDst, uint64 count);
 }

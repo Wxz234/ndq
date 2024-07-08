@@ -1,7 +1,5 @@
 #include <Windows.h>
 
-#include <DirectXMath.h>
-
 #include <cstring>
 
 #include "ndq/rhi.h"
@@ -11,7 +9,7 @@ using namespace ndq;
 
 struct Vertex
 {
-    DirectX::XMFLOAT4 position;
+    float position[4];
 };
 
 struct App : public IApplication
@@ -38,7 +36,7 @@ struct App : public IApplication
         {
             { { 0.0f,    0.25f, 0.0f, 1.0f } },
             { { 0.25f,  -0.25f, 0.0f, 1.0f } },
-            { { -0.25f, -0.25f, 0.0f, 1.0f } }
+            { { -0.25f, -0.25f, 0.0f, 1.0f } },
         };
 
         uint32 VertexStrideInBytes = sizeof(Vertex);
@@ -48,10 +46,7 @@ struct App : public IApplication
         BufferDesc.SizeInBytes = VertexSizeInBytes;
         pVertex = pGraphicsDevice->AllocateBuffer(&BufferDesc, NDQ_RESOURCE_HEAP_TYPE::UPLOAD, NDQ_RESOURCE_STATE::UNIVERSAL_READ);
 
-        void* pVertexDataBegin;
-        pVertex->Map(&pVertexDataBegin);
-        memcpy(pVertexDataBegin, TriangleVertices, VertexSizeInBytes);
-        pVertex->Unmap();
+        CopyFromCpuToGpu(TriangleVertices, pVertex.get(), VertexSizeInBytes);
 
         mVBV.BufferLocation = pVertex->GetGPUVirtualAddress();
         mVBV.StrideInBytes = VertexStrideInBytes;

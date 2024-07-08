@@ -12,6 +12,7 @@
 #include <wrl/wrappers/corewrappers.h>
 
 #include <atomic>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <vector>
@@ -1349,5 +1350,13 @@ namespace ndq
         Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pReflection;
         pUtils->CreateReflection(&ReflectionData, IID_PPV_ARGS(&pReflection));
         return std::shared_ptr<IShader>(new Internal::Shader(shaderType, pShader, pReflection));
+    }
+
+    void CopyFromCpuToGpu(void* pSrc, IGraphicsBuffer* pDst, uint64 count)
+    {
+        void* pVertexDataBegin;
+        pDst->Map(&pVertexDataBegin);
+        memcpy(pVertexDataBegin, pSrc, count);
+        pDst->Unmap();
     }
 }
