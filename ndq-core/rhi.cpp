@@ -1352,11 +1352,13 @@ namespace ndq
         return std::shared_ptr<IShader>(new Internal::Shader(shaderType, pShader, pReflection));
     }
 
-    void CopyFromCpuToGpu(void* pSrc, IGraphicsBuffer* pDst, uint64 count)
+    void CopyResourceFromCpuToGpu(void* pSrc, IGraphicsResource* pDst, uint64 count)
     {
         void* pVertexDataBegin;
-        pDst->Map(&pVertexDataBegin);
+        auto Temp = dynamic_cast<Internal::GraphicsResourceInterface*>(pDst);
+        auto TempPtr = reinterpret_cast<ID3D12Resource*>(Temp->GetRawPtr());
+        TempPtr->Map(0, nullptr, &pVertexDataBegin);
         memcpy(pVertexDataBegin, pSrc, count);
-        pDst->Unmap();
+        TempPtr->Unmap(0, nullptr);
     }
 }

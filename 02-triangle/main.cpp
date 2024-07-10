@@ -46,7 +46,7 @@ struct App : public IApplication
         BufferDesc.SizeInBytes = VertexSizeInBytes;
         pVertex = pGraphicsDevice->AllocateBuffer(&BufferDesc, NDQ_RESOURCE_HEAP_TYPE::UPLOAD, NDQ_RESOURCE_STATE::UNIVERSAL_READ);
 
-        CopyFromCpuToGpu(TriangleVertices, pVertex.get(), VertexSizeInBytes);
+        CopyResourceFromCpuToGpu(TriangleVertices, pVertex.get(), VertexSizeInBytes);
 
         mVBV.BufferLocation = pVertex->GetGPUVirtualAddress();
         mVBV.StrideInBytes = VertexStrideInBytes;
