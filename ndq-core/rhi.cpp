@@ -676,16 +676,26 @@ namespace Internal
             bNeedUpdatePSO = pPipelineCache->Update(ndq::NDQ_SHADER_TYPE::VERTEX, pShader);
         }
 
-        void RSSetScissorRects(ndq::uint32 numRects, const ndq::NDQ_RECT* pRects)
+        void RSSetScissorRect(ndq::int32 left, ndq::int32 top, ndq::int32 right, ndq::int32 bottom)
         {
-            const D3D12_RECT* pR = reinterpret_cast<const D3D12_RECT*>(pRects);
-            pList->RSSetScissorRects(numRects, pR);
+            D3D12_RECT R;
+            R.left = left;
+            R.top = top;
+            R.right = right;
+            R.bottom = bottom;
+            pList->RSSetScissorRects(1, &R);
         }
 
-        void RSSetViewports(ndq::uint32 numViewports, const ndq::NDQ_VIEWPORT* pViewports)
+        void RSSetViewport(float topLeftX, float topLeftY, float width, float height)
         {
-            const D3D12_VIEWPORT* pVp = reinterpret_cast<const D3D12_VIEWPORT*>(pViewports);
-            pList->RSSetViewports(numViewports, pVp);
+            D3D12_VIEWPORT V;
+            V.TopLeftX = topLeftX;
+            V.TopLeftY = topLeftY;
+            V.Width = width;
+            V.Height = height;
+            V.MinDepth = 0.f;
+            V.MaxDepth = 1.f;
+            pList->RSSetViewports(1, &V);
         }
 
         void PSSetPixelShader(ndq::IShader* pShader)

@@ -24,24 +24,6 @@ namespace ndq
         TRIANGLELIST = 4,
     };
 
-    struct NDQ_VIEWPORT
-    {
-        float TopLeftX;
-        float TopLeftY;
-        float Width;
-        float Height;
-        float MinDepth;
-        float MaxDepth;
-    };
-
-    struct NDQ_RECT
-    {
-        long Left;
-        long Top;
-        long Right;
-        long Bottom;
-    };
-
     // IA VS HS TS DS GS SO RS PS OM
 
     class ICommandList
@@ -58,8 +40,8 @@ namespace ndq
         virtual void IASetPrimitiveTopology(NDQ_PRIMITIVE_TOPOLOGY topology) = 0;
         virtual void IASetVertexBuffers(uint32 startSlot, uint32 numViews, const NDQ_VERTEX_BUFFER_VIEW* pViews) = 0;
         virtual void VSSetVertexShader(IShader* pShader) = 0;
-        virtual void RSSetScissorRects(uint32 numRects, const NDQ_RECT* pRects) = 0;
-        virtual void RSSetViewports(uint32 numViewports, const NDQ_VIEWPORT* pViewports) = 0;
+        virtual void RSSetScissorRect(int32 left, int32 top, int32 right, int32 bottom) = 0;
+        virtual void RSSetViewport(float topLeftX, float topLeftY, float width, float height) = 0;
         virtual void PSSetPixelShader(IShader* pShader) = 0;
         virtual void OMSetRenderTargets(uint32 numViews, IRenderTargetView* const* ppRenderTargetViews, IDepthStencilView* pDepthStencilView) = 0;
     };
