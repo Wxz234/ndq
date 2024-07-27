@@ -13,6 +13,7 @@
 
 #include <atomic>
 #include <cstring>
+#include <deque>
 #include <memory>
 #include <string>
 #include <vector>
@@ -237,6 +238,7 @@ namespace Internal
             return mHandle.ptr;
         }
 
+    private:
         ndq::NDQ_DEPTH_STENCIL_VIEW_DESC mDesc;
         D3D12_CPU_DESCRIPTOR_HANDLE mHandle;
     };
@@ -258,7 +260,18 @@ namespace Internal
         {
             return pBlob->GetBufferSize();
         }
-        
+
+        Microsoft::WRL::ComPtr<IDxcBlob> GetBlob() const
+        {
+            return pBlob;
+        }
+
+        Microsoft::WRL::ComPtr<ID3D12ShaderReflection> GetReflection() const
+        {
+            return pReflection;
+        }
+
+    private:
         ndq::NDQ_SHADER_TYPE mType;
         Microsoft::WRL::ComPtr<IDxcBlob> pBlob;
         Microsoft::WRL::ComPtr<ID3D12ShaderReflection> pReflection;
@@ -395,8 +408,8 @@ namespace Internal
                 {
                     pVertexShaderCache = pShader;
                     auto TempShader = dynamic_cast<Shader*>(pVertexShaderCache);
-                    pVertexBlob = TempShader->pBlob;
-                    pVertexReflection = TempShader->pReflection;
+                    pVertexBlob = TempShader->GetBlob();
+                    pVertexReflection = TempShader->GetReflection();
                     mCacheGraphicsPSO.VS = CD3DX12_SHADER_BYTECODE(pVertexBlob->GetBufferPointer(), pVertexBlob->GetBufferSize());
                     return true;
                 }
@@ -407,8 +420,8 @@ namespace Internal
                 {
                     pPixelShaderCache = pShader;
                     auto TempShader = dynamic_cast<Shader*>(pPixelShaderCache);
-                    pPixelBlob = TempShader->pBlob;
-                    pPixelReflection = TempShader->pReflection;
+                    pPixelBlob = TempShader->GetBlob();
+                    pPixelReflection = TempShader->GetReflection();
                     mCacheGraphicsPSO.PS = CD3DX12_SHADER_BYTECODE(pPixelBlob->GetBufferPointer(), pPixelBlob->GetBufferSize());
                     return true;
                 }
@@ -418,7 +431,6 @@ namespace Internal
 
         void BuildGraphicsRootSignature()
         {
-            // todo
             const D3D12_VERSIONED_ROOT_SIGNATURE_DESC RootSignaureDesc =
             {
                 .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
@@ -461,6 +473,10 @@ namespace Internal
         }
 
     private:
+
+        std::deque<CD3DX12_DESCRIPTOR_RANGE1> mDescriptorRanges;
+        std::deque<D3D12_ROOT_PARAMETER1> mRootParameters;
+
         D3D12_GRAPHICS_PIPELINE_STATE_DESC mCacheGraphicsPSO;
 
         Microsoft::WRL::ComPtr<ID3D12Device> pDeviceCache;
