@@ -12,13 +12,15 @@ namespace ndq
     };
 
     template <typename T>
+    concept RefCountPtrConcept = !std::is_reference_v<T> && !std::is_const_v<T> && std::is_base_of_v<IRefCounted, T>;
+
+    template <RefCountPtrConcept T>
     class RefCountPtr
     {
-        static_assert(std::is_base_of_v<IRefCounted, T>, "T must be a subclass of IRefCounted!");
     public:
         constexpr RefCountPtr() noexcept : ptr_(nullptr) {}
         constexpr RefCountPtr(decltype(nullptr)) noexcept : ptr_(nullptr) {}
-        explicit RefCountPtr(T* ptr) : ptr_(other)
+        RefCountPtr(T* ptr) : ptr_(ptr)
         {
             InternalAddRef();
         }
@@ -71,7 +73,6 @@ namespace ndq
             return *this;
         }
 
-
         void Swap(RefCountPtr&& r) noexcept
         {
             T* tmp = ptr_;
@@ -91,11 +92,6 @@ namespace ndq
             return ptr_;
         }
 
-        operator T* () const
-        {
-            return ptr_;
-        }
-
         T* operator->() const noexcept
         {
             return ptr_;
@@ -103,7 +99,13 @@ namespace ndq
 
         T** operator&()
         {
+            InternalRelease();
             return &ptr_;
+        }
+
+        explicit operator bool() const noexcept
+        {
+            return Get() != nullptr;
         }
 
         [[nodiscard]] T* const* GetAddressOf() const noexcept
