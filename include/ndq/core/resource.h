@@ -12,75 +12,75 @@ namespace ndq
     };
 
     template <typename T>
-    concept RefCountPtrConcept = !std::is_reference_v<T> && !std::is_const_v<T> && std::is_base_of_v<IRefCounted, T>;
+    concept TRefCountPtrConcept = !std::is_reference_v<T> && !std::is_const_v<T> && std::is_base_of_v<IRefCounted, T>;
 
-    template <RefCountPtrConcept T>
-    class RefCountPtr
+    template <TRefCountPtrConcept T>
+    class TRefCountPtr
     {
     public:
-        constexpr RefCountPtr() noexcept : ptr_(nullptr) {}
-        constexpr RefCountPtr(decltype(nullptr)) noexcept : ptr_(nullptr) {}
-        RefCountPtr(T* ptr) : ptr_(ptr)
+        constexpr TRefCountPtr() noexcept : ptr_(nullptr) {}
+        constexpr TRefCountPtr(decltype(nullptr)) noexcept : ptr_(nullptr) {}
+        TRefCountPtr(T* ptr) : ptr_(ptr)
         {
             InternalAddRef();
         }
 
-        RefCountPtr(const RefCountPtr& other) noexcept : ptr_(other.ptr_)
+        TRefCountPtr(const TRefCountPtr& other) noexcept : ptr_(other.ptr_)
         {
             InternalAddRef();
         }
 
-        RefCountPtr(RefCountPtr&& other) noexcept : ptr_(nullptr)
+        TRefCountPtr(TRefCountPtr&& other) noexcept : ptr_(nullptr)
         {
-            if (this != reinterpret_cast<RefCountPtr*>(&reinterpret_cast<unsigned char&>(other)))
+            if (this != reinterpret_cast<TRefCountPtr*>(&reinterpret_cast<unsigned char&>(other)))
             {
                 Swap(other);
             }
         }
 
-        ~RefCountPtr() noexcept
+        ~TRefCountPtr() noexcept
         {
             InternalRelease();
         }
 
-        RefCountPtr& operator=(decltype(nullptr)) noexcept
+        TRefCountPtr& operator=(decltype(nullptr)) noexcept
         {
             InternalRelease();
             return *this;
         }
 
-        RefCountPtr& operator=(T* other) noexcept
+        TRefCountPtr& operator=(T* other) noexcept
         {
             if (ptr_ != other)
             {
-                RefCountPtr(other).Swap(*this);
+                TRefCountPtr(other).Swap(*this);
             }
             return *this;
         }
 
-        RefCountPtr& operator=(const RefCountPtr& other) noexcept
+        TRefCountPtr& operator=(const TRefCountPtr& other) noexcept
         {
             if (ptr_ != other.ptr_)
             {
-                RefCountPtr(other).Swap(*this);
+                TRefCountPtr(other).Swap(*this);
             }
             return *this;
         }
 
-        RefCountPtr& operator=(RefCountPtr&& other) noexcept
+        TRefCountPtr& operator=(TRefCountPtr&& other) noexcept
         {
-            RefCountPtr(static_cast<RefCountPtr&&>(other)).Swap(*this);
+            TRefCountPtr(static_cast<TRefCountPtr&&>(other)).Swap(*this);
             return *this;
         }
 
-        void Swap(RefCountPtr&& r) noexcept
+        void Swap(TRefCountPtr&& r) noexcept
         {
             T* tmp = ptr_;
             ptr_ = r.ptr_;
             r.ptr_ = tmp;
         }
 
-        void Swap(RefCountPtr& r) noexcept
+        void Swap(TRefCountPtr& r) noexcept
         {
             T* tmp = ptr_;
             ptr_ = r.ptr_;

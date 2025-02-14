@@ -103,6 +103,8 @@ namespace ndq
             pDevice->CreateFence(mComputeFenceValue++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pComputeFence));
             mComputeEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
 
+            _CreateRTV();
+
             Factory->Release();
             if (DebugController)
             {
@@ -110,8 +112,6 @@ namespace ndq
             }
             Adapter->Release();
             SwapChain->Release();
-
-            _CreateRTV();
         }
 
         void Finalize()
