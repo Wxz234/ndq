@@ -1,5 +1,6 @@
 #pragma once
 
+#include <compare>
 #include <type_traits>
 
 namespace ndq
@@ -12,15 +13,18 @@ namespace ndq
     };
 
     template <typename T>
-    concept TRefCountPtrConcept = !std::is_reference_v<T> && !std::is_const_v<T> && std::is_base_of_v<IRefCounted, T>;
+    concept TRefCountPtrConcept =
+        !std::is_reference_v<T> &&
+        !std::is_const_v<T> &&
+        !std::is_array_v<T> &&
+        std::is_base_of_v<IRefCounted, T>;
 
     template <TRefCountPtrConcept T>
     class TRefCountPtr
     {
     public:
-        constexpr TRefCountPtr() noexcept : ptr_(nullptr) {}
-        constexpr TRefCountPtr(decltype(nullptr)) noexcept : ptr_(nullptr) {}
-        TRefCountPtr(T* ptr) : ptr_(ptr)
+        constexpr TRefCountPtr(decltype(nullptr) ptr = nullptr) noexcept : ptr_(ptr) {}
+        TRefCountPtr(T* other) noexcept : ptr_(other)
         {
             InternalAddRef();
         }
@@ -32,10 +36,7 @@ namespace ndq
 
         TRefCountPtr(TRefCountPtr&& other) noexcept : ptr_(nullptr)
         {
-            if (this != reinterpret_cast<TRefCountPtr*>(&reinterpret_cast<unsigned char&>(other)))
-            {
-                Swap(other);
-            }
+            Swap(other);
         }
 
         ~TRefCountPtr() noexcept
@@ -73,6 +74,44 @@ namespace ndq
             return *this;
         }
 
+        explicit operator bool() const noexcept
+        {
+            return Get() != nullptr;
+        }
+
+        T* Get() const noexcept
+        {
+            return ptr_;
+        }
+
+        T* operator->() const noexcept
+        {
+            return ptr_;
+        }
+
+        T* Detach() noexcept
+        {
+            T* ptr = ptr_;
+            ptr_ = nullptr;
+            return ptr;
+        }
+
+        T* const* GetAddressOf() const noexcept
+        {
+            return &ptr_;
+        }
+
+        T** GetAddressOf() noexcept
+        {
+            return &ptr_;
+        }
+
+        T** ReleaseAndGetAddressOf() noexcept
+        {
+            InternalRelease();
+            return &ptr_;
+        }
+
         void Swap(TRefCountPtr&& r) noexcept
         {
             T* tmp = ptr_;
@@ -87,55 +126,11 @@ namespace ndq
             r.ptr_ = tmp;
         }
 
-        [[nodiscard]] T* Get() const noexcept
-        {
-            return ptr_;
-        }
-
-        T* operator->() const noexcept
-        {
-            return ptr_;
-        }
-
-        T** operator&()
-        {
-            InternalRelease();
-            return &ptr_;
-        }
-
-        explicit operator bool() const noexcept
-        {
-            return Get() != nullptr;
-        }
-
-        [[nodiscard]] T* const* GetAddressOf() const noexcept
-        {
-            return &ptr_;
-        }
-
-        [[nodiscard]] T** GetAddressOf() noexcept
-        {
-            return &ptr_;
-        }
-
-        [[nodiscard]] T** ReleaseAndGetAddressOf() noexcept
-        {
-            InternalRelease();
-            return &ptr_;
-        }
-
-        T* Detach() noexcept
-        {
-            T* ptr = ptr_;
-            ptr_ = nullptr;
-            return ptr;
-        }
-
         unsigned long Reset()
         {
             return InternalRelease();
         }
-         
+
     private:
         T* ptr_;
 
@@ -161,4 +156,28 @@ namespace ndq
             return ref;
         }
     };
+
+    template<typename T>
+    bool operator==(const TRefCountPtr<T>& a, const TRefCountPtr<T>& b) noexcept
+    {
+        return a.Get() == b.Get();
+    }
+
+    template<typename T>
+    bool operator==(const TRefCountPtr<T>& a, decltype(nullptr)) noexcept
+    {
+        return a.Get() == nullptr;
+    }
+
+    template<typename T>
+    std::strong_ordering operator<=>(const TRefCountPtr<T>& a, const TRefCountPtr<T>& b) noexcept
+    {
+        return a.Get() <=> b.Get();
+    }
+
+    template<typename T>
+    std::strong_ordering operator<=>(const TRefCountPtr<T>& a, decltype(nullptr)) noexcept
+    {
+        return a.Get() <=> static_cast<T*>(nullptr);
+    }
 }

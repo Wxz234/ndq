@@ -2,11 +2,13 @@
 
 #include "ndq/core/resource.h"
 
+#include <string>
+
 namespace ndq
 {
     class IAsset : public IRefCounted
     {
     public:
-        virtual bool HasError() const = 0;
+        virtual std::string GetUUID() const = 0;
     };
 }

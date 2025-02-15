@@ -1,7 +1,7 @@
 #include "ndq/asset/asset.h"
+#include "ndq/core/uuid.h"
 
-#include <cstddef>
-#include <vector>
+#include <atomic>
 
 namespace ndq
 {
@@ -9,7 +9,32 @@ namespace ndq
     {
     public:
 
+        Asset()
+        {
+            mRefCount = 1;
+        }
 
-        std::vector<std::byte> mByte;
+        unsigned long AddRef()
+        {
+            return ++mRefCount;
+        }
+
+        unsigned long Release()
+        {
+            unsigned long result = --mRefCount;
+            if (result == 0)
+            {
+                delete this;
+            }
+            return result;
+        }
+
+        std::string GetUUID() const
+        {
+            return mUuid.ToString();
+        }
+
+        UUID mUuid;
+        std::atomic<unsigned long> mRefCount;
     };
 }
