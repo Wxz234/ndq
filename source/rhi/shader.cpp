@@ -10,13 +10,8 @@ namespace ndq
 {
     IBlob* _CreateBlob(IDxcBlob* pRawBlob);
 
-    void LoadShaderFromPath(const wchar_t* path, const wchar_t** pArguments, unsigned argCount, IBlob** ppBlob)
+    TRefCountPtr<IBlob> LoadShaderFromPath(const wchar_t* path, const wchar_t** pArguments, unsigned argCount)
     {
-        if (ppBlob == nullptr)
-        {
-            return;
-        }
-
         Microsoft::WRL::ComPtr<IDxcUtils> pUtils;
         DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils));
 
@@ -45,8 +40,12 @@ namespace ndq
         IDxcBlob* pBlob;
         Microsoft::WRL::ComPtr<IDxcBlobUtf16> pShaderName = nullptr;
         pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pBlob), &pShaderName);
+        auto pTempPtr = _CreateBlob(pBlob);
+        TRefCountPtr<IBlob> pret = pTempPtr;
 
-        *ppBlob = _CreateBlob(pBlob);
         pBlob->Release();
+        pTempPtr->Release();
+
+        return pret;
     }
 }

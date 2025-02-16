@@ -1,8 +1,9 @@
 #pragma once
 
 #include "ndq/core/blob.h"
+#include "ndq/core/resource.h"
 
 namespace ndq
 {
-    void LoadShaderFromPath(const wchar_t* path, const wchar_t** pArguments, unsigned argCount, IBlob** ppBlob);
+    TRefCountPtr<IBlob> LoadShaderFromPath(const wchar_t* path, const wchar_t** pArguments, unsigned argCount);
 }

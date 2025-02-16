@@ -1,5 +1,6 @@
 #include "ndq/platform/window.h"
 #include "ndq/render/renderer.h"
+#include "ndq/core/resource.h"
 
 using namespace ndq;
 
@@ -17,7 +18,7 @@ struct Window : IWindow
 
     void Update(float)
     {
-
+        TRefCountPtr<IRefCounted[]> SS;
     }
 
     void Finalize()

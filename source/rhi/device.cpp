@@ -156,13 +156,8 @@ namespace ndq
             }
         }
 
-        void CreateCommandList(NDQ_COMMAND_LIST_TYPE type, ICommandList** ppCmdList)
+        TRefCountPtr<ICommandList> CreateCommandList(NDQ_COMMAND_LIST_TYPE type)
         {
-            if (ppCmdList == nullptr)
-            {
-                return;
-            }
-
             ID3D12CommandAllocator* Allocator = nullptr;
             ID3D12GraphicsCommandList4* List = nullptr;
             switch (type)
@@ -180,7 +175,12 @@ namespace ndq
                 pDevice->CreateCommandList1(NDQ_NODE_MASK, D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
                 break;
             }
-            *ppCmdList = _CreateCommandList(type, List, Allocator);
+            auto pTempPtr = _CreateCommandList(type, List, Allocator);
+            TRefCountPtr<ICommandList> pRet = pTempPtr;
+
+            pTempPtr->Release();
+
+            return pRet;
         }
 
         void MoveToNextFrame()

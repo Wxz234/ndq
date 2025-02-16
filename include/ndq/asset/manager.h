@@ -6,6 +6,10 @@ namespace ndq
 {
     class AssetManager
     {
+    public:
+        AssetManager();
+
+
 
     };
 }

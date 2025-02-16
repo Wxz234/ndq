@@ -13,13 +13,7 @@ namespace ndq
     };
 
     template <typename T>
-    concept TRefCountPtrConcept =
-        !std::is_reference_v<T> &&
-        !std::is_const_v<T> &&
-        !std::is_array_v<T> &&
-        std::is_base_of_v<IRefCounted, T>;
-
-    template <TRefCountPtrConcept T>
+    requires std::is_base_of_v<IRefCounted, T>
     class TRefCountPtr
     {
     public:

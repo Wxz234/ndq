@@ -7,6 +7,7 @@
 #include <wrl/client.h>
 
 #include "ndq/core/blob.h"
+#include "ndq/core/resource.h"
 #include "ndq/platform/window.h"
 #include "ndq/rhi/command_list.h"
 #include "ndq/rhi/device.h"
@@ -34,10 +35,8 @@ struct Window : IWindow
             L"-E", L"main"
         };
 
-        IBlob* pVertexBlob = nullptr;
-        LoadShaderFromPath(L"vertex.hlsl", VertexArgs, 4, &pVertexBlob);
-        IBlob* pPixelBlob = nullptr;
-        LoadShaderFromPath(L"pixel.hlsl", PixelArgs, 4, &pPixelBlob);
+        auto pVertexBlob = LoadShaderFromPath(L"vertex.hlsl", VertexArgs, 4);
+        auto pPixelBlob = LoadShaderFromPath(L"pixel.hlsl", PixelArgs, 4);
        
         auto pRawDevice = GetGraphicsDevice()->GetRawDevice();
         pRawDevice->CreateRootSignature(1, pVertexBlob->GetBufferPointer(), pVertexBlob->GetBufferSize(), IID_PPV_ARGS(&pRootSignature));
@@ -59,10 +58,7 @@ struct Window : IWindow
         
         pRawDevice->CreateGraphicsPipelineState(&PsoDesc, IID_PPV_ARGS(&pPipelineSatae));
 
-        GetGraphicsDevice()->CreateCommandList(NDQ_COMMAND_LIST_TYPE::GRAPHICS, &pCmdList);
-
-        pVertexBlob->Release();
-        pPixelBlob->Release();
+        pCmdList = GetGraphicsDevice()->CreateCommandList(NDQ_COMMAND_LIST_TYPE::GRAPHICS);
     }
 
     void Update(float)
@@ -81,7 +77,10 @@ struct Window : IWindow
         pRawCmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         
         auto CurrentResource = GetGraphicsDevice()->GetCurrentResource();
-        pRawCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentResource, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+        {
+            auto Barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentResource, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            pRawCmdList->ResourceBarrier(1, &Barrier);
+        }
 
         auto RtvHandle = GetGraphicsDevice()->GetCurrentRenderTargetView();
         pRawCmdList->OMSetRenderTargets(1, &RtvHandle, FALSE, nullptr);
@@ -89,23 +88,26 @@ struct Window : IWindow
         pRawCmdList->ClearRenderTargetView(RtvHandle, ClearColor, 0, nullptr);
         pRawCmdList->DrawInstanced(3, 1, 0, 0);
 
-        pRawCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentResource, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+        {
+            auto Barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentResource, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+            pRawCmdList->ResourceBarrier(1, &Barrier);
+        }
         
         pCmdList->Close();
 
-        GetGraphicsDevice()->ExecuteCommandList(pCmdList);
+        GetGraphicsDevice()->ExecuteCommandList(pCmdList.Get());
 
         GetGraphicsDevice()->Wait(NDQ_COMMAND_LIST_TYPE::GRAPHICS);
     }
 
     void Finalize()
     {
-        pCmdList->Release();
+        pCmdList.Reset();
     }
 
     Microsoft::WRL::ComPtr<ID3D12PipelineState> pPipelineSatae;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> pRootSignature;
-    ICommandList* pCmdList = nullptr;
+    TRefCountPtr<ICommandList> pCmdList;
 };
 
 WIN_MAIN_MACRO(Window)
