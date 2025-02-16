@@ -6,12 +6,13 @@
 #include <dxgiformat.h>
 #include <wrl/client.h>
 
-#include "ndq/core/blob.h"
 #include "ndq/core/resource.h"
 #include "ndq/platform/window.h"
 #include "ndq/rhi/command_list.h"
 #include "ndq/rhi/device.h"
-#include "ndq/rhi/shader.h"
+
+#include "pixel.h"
+#include "vertex.h"
 
 using namespace ndq;
 
@@ -24,28 +25,14 @@ struct Window : IWindow
 
     void Initialize()
     {
-        const wchar_t* VertexArgs[] =
-        {
-            L"-T", L"vs_6_0",
-            L"-E", L"main"
-        };
-        const wchar_t* PixelArgs[] =
-        {
-            L"-T", L"ps_6_0",
-            L"-E", L"main"
-        };
-
-        auto pVertexBlob = LoadShaderFromPath(L"vertex.hlsl", VertexArgs, 4);
-        auto pPixelBlob = LoadShaderFromPath(L"pixel.hlsl", PixelArgs, 4);
-       
         auto pRawDevice = GetGraphicsDevice()->GetRawDevice();
-        pRawDevice->CreateRootSignature(1, pVertexBlob->GetBufferPointer(), pVertexBlob->GetBufferSize(), IID_PPV_ARGS(&pRootSignature));
+        pRawDevice->CreateRootSignature(1, VertexBlob, sizeof(VertexBlob), IID_PPV_ARGS(&pRootSignature));
 
         D3D12_GRAPHICS_PIPELINE_STATE_DESC PsoDesc = {};
         PsoDesc.InputLayout = { nullptr, 0 };
         PsoDesc.pRootSignature = pRootSignature.Get();
-        PsoDesc.VS = CD3DX12_SHADER_BYTECODE(pVertexBlob->GetBufferPointer(), pVertexBlob->GetBufferSize());
-        PsoDesc.PS = CD3DX12_SHADER_BYTECODE(pPixelBlob->GetBufferPointer(), pPixelBlob->GetBufferSize());
+        PsoDesc.VS = CD3DX12_SHADER_BYTECODE(VertexBlob, sizeof(VertexBlob));
+        PsoDesc.PS = CD3DX12_SHADER_BYTECODE(PixelBlob, sizeof(PixelBlob));
         PsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
         PsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
         PsoDesc.DepthStencilState.DepthEnable = FALSE;

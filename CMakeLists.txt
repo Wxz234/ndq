@@ -5,10 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON) 
 
 execute_process(
-    COMMAND "nuget.bat"
+    COMMAND "prebuild.bat"
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    OUTPUT_QUIET
-    ERROR_QUIET
 )
 
 add_subdirectory("source")

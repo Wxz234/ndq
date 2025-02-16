@@ -18,7 +18,7 @@ struct Window : IWindow
 
     void Update(float)
     {
-        TRefCountPtr<IRefCounted[]> SS;
+        TRefCountPtr<IRefCounted> SS;
     }
 
     void Finalize()
