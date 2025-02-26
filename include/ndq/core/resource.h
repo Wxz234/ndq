@@ -1,7 +1,6 @@
 #pragma once
 
 #include <compare>
-#include <type_traits>
 
 namespace ndq
 {
@@ -13,11 +12,11 @@ namespace ndq
     };
 
     template <typename T>
-    requires std::is_base_of_v<IRefCounted, T>
     class TRefCountPtr
     {
     public:
-        constexpr TRefCountPtr(decltype(nullptr) ptr = nullptr) noexcept : ptr_(ptr) {}
+        constexpr TRefCountPtr() noexcept : ptr_(nullptr) {}
+        constexpr TRefCountPtr(decltype(nullptr)) noexcept : ptr_(nullptr) {}
         TRefCountPtr(T* other) noexcept : ptr_(other)
         {
             InternalAddRef();

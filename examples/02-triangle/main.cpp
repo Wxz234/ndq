@@ -25,7 +25,7 @@ struct Window : IWindow
 
     void Initialize()
     {
-        auto pRawDevice = GetGraphicsDevice()->GetRawDevice();
+        auto pRawDevice = IDevice::GetGraphicsDevice()->GetRawDevice();
         pRawDevice->CreateRootSignature(1, VertexBlob, sizeof(VertexBlob), IID_PPV_ARGS(&pRootSignature));
 
         D3D12_GRAPHICS_PIPELINE_STATE_DESC PsoDesc = {};
@@ -45,7 +45,7 @@ struct Window : IWindow
         
         pRawDevice->CreateGraphicsPipelineState(&PsoDesc, IID_PPV_ARGS(&pPipelineSatae));
 
-        pCmdList = GetGraphicsDevice()->CreateCommandList(NDQ_COMMAND_LIST_TYPE::GRAPHICS);
+        pCmdList = IDevice::GetGraphicsDevice()->CreateCommandList(NDQ_COMMAND_LIST_TYPE::GRAPHICS);
     }
 
     void Update(float)
@@ -63,13 +63,13 @@ struct Window : IWindow
         pRawCmdList->IASetVertexBuffers(0, 1, &emptyVertexBuffer);
         pRawCmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         
-        auto CurrentResource = GetGraphicsDevice()->GetCurrentResource();
+        auto CurrentResource = IDevice::GetGraphicsDevice()->GetCurrentResource();
         {
             auto Barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentResource, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
             pRawCmdList->ResourceBarrier(1, &Barrier);
         }
 
-        auto RtvHandle = GetGraphicsDevice()->GetCurrentRenderTargetView();
+        auto RtvHandle = IDevice::GetGraphicsDevice()->GetCurrentRenderTargetView();
         pRawCmdList->OMSetRenderTargets(1, &RtvHandle, FALSE, nullptr);
         const float ClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
         pRawCmdList->ClearRenderTargetView(RtvHandle, ClearColor, 0, nullptr);
@@ -82,15 +82,12 @@ struct Window : IWindow
         
         pCmdList->Close();
 
-        GetGraphicsDevice()->ExecuteCommandList(pCmdList.Get());
+        IDevice::GetGraphicsDevice()->ExecuteCommandList(pCmdList.Get());
 
-        GetGraphicsDevice()->Wait(NDQ_COMMAND_LIST_TYPE::GRAPHICS);
+        IDevice::GetGraphicsDevice()->Wait(NDQ_COMMAND_LIST_TYPE::GRAPHICS);
     }
 
-    void Finalize()
-    {
-        pCmdList.Reset();
-    }
+    void Finalize() {}
 
     Microsoft::WRL::ComPtr<ID3D12PipelineState> pPipelineSatae;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> pRootSignature;

@@ -1,82 +1,42 @@
 #include "ndq/core/uuid.h"
 
-#include <rpc.h>
-
-#include <memory>
+#include <cstdint>
+#include <random>
+#include <string>
 
 namespace ndq
 {
-    void UUIDStrDeleter(RPC_CSTR* str)
+    std::string GenerateUUID()
     {
-        RpcStringFreeA(str);
-        delete str;
-    }
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(0, 255);
 
-    class UUID::DATA
-    {
-    public:
-        DATA() : uuid{}, uuidStr(new RPC_CSTR, UUIDStrDeleter)
+        uint8_t bytes[16];
+        for (auto& byte : bytes)
         {
-            UuidCreate(&uuid);
-            UuidToStringA(&uuid, uuidStr.get());
+            byte = dis(gen);
         }
 
-        ::UUID uuid;
-        std::shared_ptr<RPC_CSTR> uuidStr;
-    };
+        bytes[8] &= 0xBF;
+        bytes[8] |= 0x80;
+        bytes[6] &= 0x4F;
+        bytes[6] |= 0x40;
 
-    UUID::UUID()
-    {
-        pimpl = new UUID::DATA;
-    }
+        std::string uuidStr = "00000000-0000-0000-0000-000000000000";
+        constexpr char guid_encoder[17] = "0123456789abcdef";
+        for (size_t i = 0, index = 0; i < 36; ++i)
+        {
+            if (i == 8 || i == 13 || i == 18 || i == 23)
+            {
+                continue;
+            }
 
-    UUID::UUID(const UUID& u)
-    {
-        pimpl = new UUID::DATA;
-        pimpl->uuid = u.pimpl->uuid;
-        pimpl->uuidStr = u.pimpl->uuidStr;
-    }
+            uuidStr[i] = guid_encoder[bytes[index] >> 4 & 0x0f];
+            uuidStr[++i] = guid_encoder[bytes[index] & 0x0f];
+            ++index;
+        }
 
-    UUID::UUID(UUID&& u) noexcept
-    {
-        pimpl = new UUID::DATA;
-        pimpl->uuid = u.pimpl->uuid;
-        pimpl->uuidStr = u.pimpl->uuidStr;
-    }
-
-    UUID& UUID::operator=(const UUID& u)
-    {
-        pimpl->uuid = u.pimpl->uuid;
-        pimpl->uuidStr = u.pimpl->uuidStr;
-        return *this;
-    }
-
-    UUID& UUID::operator= (UUID&& u) noexcept
-    {
-        pimpl->uuid = u.pimpl->uuid;
-        pimpl->uuidStr = u.pimpl->uuidStr;
-        return *this;
-    }
-
-    UUID::~UUID()
-    {
-        delete pimpl;
-    }
-
-    std::strong_ordering UUID::operator<=>(const UUID& other) const
-    {
-        RPC_STATUS status;
-        return UuidCompare(&pimpl->uuid, &other.pimpl->uuid, &status) <=> 0;
-    }
-
-    bool UUID::operator==(const UUID& other) const
-    {
-        RPC_STATUS status;
-        return UuidCompare(&pimpl->uuid, &other.pimpl->uuid, &status) == 0;
-    }
-
-    std::string UUID::ToString() const
-    {
-        return std::string(reinterpret_cast<char*>(*pimpl->uuidStr));
+        return uuidStr;
     }
 }

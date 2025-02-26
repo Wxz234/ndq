@@ -1,20 +1,34 @@
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <Windows.h>
+
+#include "ndq/core/resource.h"
 #include "ndq/rhi/command_list.h"
 #include "ndq/rhi/device.h"
 
-#include <d3d12.h>
-#include <dxgi1_6.h>
+#include "command_list_internal.h"
+#include "device_internal.h"
 
-#include <memory>
+#include <basetsd.h>
+#include <combaseapi.h>
+#include <d3d12.h>
+#include <d3d12sdklayers.h>
+#include <d3dcommon.h>
+#include <dxgi.h>
+#include <dxgi1_2.h>
+#include <dxgi1_3.h>
+#include <dxgi1_5.h>
+#include <dxgi1_6.h>
+#include <dxgiformat.h>
+#include <handleapi.h>
+#include <synchapi.h>
+
 #include <vector>
 
 #define NDQ_SWAPCHAIN_FORMAT DXGI_FORMAT_R8G8B8A8_UNORM
 #define NDQ_SWAPCHAIN_COUNT 3
 #define NDQ_NODE_MASK 1
-
-namespace ndq
-{
-    ICommandList* _CreateCommandList(NDQ_COMMAND_LIST_TYPE type, ID3D12GraphicsCommandList4* pList, ID3D12CommandAllocator* pAllocator);
-}
 
 namespace ndq
 {
@@ -175,11 +189,9 @@ namespace ndq
                 pDevice->CreateCommandList1(NDQ_NODE_MASK, D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
                 break;
             }
-            auto pTempPtr = _CreateCommandList(type, List, Allocator);
-            TRefCountPtr<ICommandList> pRet = pTempPtr;
 
-            pTempPtr->Release();
-
+            TRefCountPtr<ICommandList> pRet;
+            CreateCommandListFunction(type, List, Allocator, pRet.ReleaseAndGetAddressOf());
             return pRet;
         }
 
@@ -277,28 +289,28 @@ namespace ndq
         UINT mRtvDescriptorSize = 0;
     };
 
-    IDevice* GetGraphicsDevice()
+    IDevice* IDevice::GetGraphicsDevice()
     {
         static IDevice* pDevice = new Device;
         return pDevice;
     }
 
-    void _SetDeviceHwndAndSize(void* hwnd, unsigned width, unsigned height)
+    void SetDeviceHwndAndSize(void* hwnd, unsigned width, unsigned height)
     {
-        auto TempPtr = dynamic_cast<Device*>(GetGraphicsDevice());
+        auto TempPtr = dynamic_cast<Device*>(IDevice::GetGraphicsDevice());
         HWND* pHwnd = reinterpret_cast<HWND*>(hwnd);
         TempPtr->Initialize(*pHwnd, width, height);
     }
 
-    void _DevicePresent()
+    void DevicePresent()
     {
-        auto TempPtr = dynamic_cast<Device*>(GetGraphicsDevice());
+        auto TempPtr = dynamic_cast<Device*>(IDevice::GetGraphicsDevice());
         TempPtr->Present();
     }
 
-    void _DeviceFinalize()
+    void DeviceFinalize()
     {
-        auto TempPtr = dynamic_cast<Device*>(GetGraphicsDevice());
+        auto TempPtr = dynamic_cast<Device*>(IDevice::GetGraphicsDevice());
         TempPtr->Finalize();
         delete TempPtr;
     }

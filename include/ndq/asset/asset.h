@@ -10,5 +10,6 @@ namespace ndq
     {
     public:
         virtual std::string GetUUID() const = 0;
+        virtual std::string GetAssetType() const = 0;
     };
 }

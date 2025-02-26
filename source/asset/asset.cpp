@@ -2,16 +2,19 @@
 #include "ndq/core/uuid.h"
 
 #include <atomic>
+#include <filesystem>
+#include <string>
 
 namespace ndq
 {
     class Asset : public IAsset
     {
     public:
-
-        Asset()
+        Asset(const wchar_t* path)
         {
             mRefCount = 1;
+            mPath = path;
+            mUuidStr = GenerateUUID();
         }
 
         unsigned long AddRef()
@@ -31,10 +34,25 @@ namespace ndq
 
         std::string GetUUID() const
         {
-            return mUuid.ToString();
+            return mUuidStr;
         }
 
-        UUID mUuid;
+        std::string GetAssetType() const
+        {
+            return mPath.extension().string();
+        }
+
         std::atomic<unsigned long> mRefCount;
+        std::filesystem::path mPath;
+        std::string mUuidStr;
     };
+
+    void CreateAssetFromPath(const wchar_t* path, IAsset** ppAsset)
+    {
+        if (!ppAsset)
+        {
+            return;
+        }
+        *ppAsset = new Asset(path);
+    }
 }

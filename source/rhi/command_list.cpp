@@ -1,9 +1,10 @@
 #include "ndq/rhi/command_list.h"
 
+#include "command_list_internal.h"
+
 #include <d3d12.h>
 
 #include <atomic>
-
 
 namespace ndq
 {
@@ -64,8 +65,12 @@ namespace ndq
         std::atomic<unsigned long> mRefCount;
     };
 
-    ICommandList* _CreateCommandList(NDQ_COMMAND_LIST_TYPE type, ID3D12GraphicsCommandList4* pList, ID3D12CommandAllocator* pAllocator)
+    void CreateCommandListFunction(NDQ_COMMAND_LIST_TYPE type, ID3D12GraphicsCommandList4* pList, ID3D12CommandAllocator* pAllocator, ICommandList** ppCmdList)
     {
-        return new CommandList(type, pList, pAllocator);
+        if (ppCmdList == nullptr)
+        {
+            return;
+        }
+        *ppCmdList = new CommandList(type, pList, pAllocator);
     }
 }

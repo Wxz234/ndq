@@ -16,7 +16,8 @@ namespace ndq
         virtual void Wait(NDQ_COMMAND_LIST_TYPE type) = 0;
         virtual D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const = 0;
         virtual ID3D12Resource* GetCurrentResource() const = 0;
+
+        static IDevice* GetGraphicsDevice();
     };
 
-    IDevice* GetGraphicsDevice();
 }

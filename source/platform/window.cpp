@@ -1,19 +1,18 @@
-#include "ndq/platform/window.h"
-
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <Windows.h>
 
-#include <DirectXMath.h>
+#include "ndq/platform/window.h"
+
+#include "../rhi/device_internal.h"
+
+#include <libloaderapi.h>
+#include <profileapi.h>
 
 namespace ndq
 {
-    void _SetDeviceHwndAndSize(void* hwnd, unsigned width, unsigned height);
-    void _DevicePresent();
-    void _DeviceFinalize();
-}
-
-namespace ndq
-{
-    LRESULT CALLBACK _WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+    LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         LRESULT Result;
         switch (message)
@@ -29,7 +28,7 @@ namespace ndq
         return Result;
     }
 
-    float _GetElapsedTime(LARGE_INTEGER& frequency, LARGE_INTEGER& lastTime)
+    float GetElapsedTime(LARGE_INTEGER& frequency, LARGE_INTEGER& lastTime)
     {
         LARGE_INTEGER CurrentTime;
         QueryPerformanceCounter(&CurrentTime);
@@ -43,7 +42,7 @@ namespace ndq
         WNDCLASSEXW Wcex{};
         Wcex.cbSize = sizeof(WNDCLASSEXW);
         Wcex.style = CS_HREDRAW | CS_VREDRAW;
-        Wcex.lpfnWndProc = _WndProc;
+        Wcex.lpfnWndProc = WndProc;
         Wcex.hInstance = GetModuleHandleW(nullptr);
         Wcex.hIcon = LoadIconW(Wcex.hInstance, L"IDI_ICON");
         Wcex.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
@@ -59,12 +58,7 @@ namespace ndq
         ShowWindow(hwnd, SW_SHOWDEFAULT);
         UpdateWindow(hwnd);
 
-        if (!DirectX::XMVerifyCPUSupport())
-        {
-            return 1;
-        }
-
-        _SetDeviceHwndAndSize(&hwnd, Width, Height);
+        SetDeviceHwndAndSize(&hwnd, Width, Height);
 
         Initialize();
 
@@ -83,15 +77,15 @@ namespace ndq
             }
             else
             {
-                auto ElapsedTime = _GetElapsedTime(Frequency, LastTime);
+                auto ElapsedTime = GetElapsedTime(Frequency, LastTime);
                 Update(ElapsedTime);
 
-                _DevicePresent();
+                DevicePresent();
             }
         }
 
         Finalize();
-        _DeviceFinalize();
+        DeviceFinalize();
 
         return static_cast<int>(Msg.wParam);
     }
