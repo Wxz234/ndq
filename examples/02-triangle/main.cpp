@@ -65,7 +65,7 @@ struct Window : IWindow
         
         auto CurrentResource = IDevice::GetGraphicsDevice()->GetCurrentResource();
         {
-            auto Barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentResource, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            auto Barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentResource.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
             pRawCmdList->ResourceBarrier(1, &Barrier);
         }
 
@@ -76,7 +76,7 @@ struct Window : IWindow
         pRawCmdList->DrawInstanced(3, 1, 0, 0);
 
         {
-            auto Barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentResource, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+            auto Barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentResource.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
             pRawCmdList->ResourceBarrier(1, &Barrier);
         }
         

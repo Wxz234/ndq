@@ -1,3 +1,4 @@
+#include "ndq/core/resource.h"
 #include "ndq/rhi/command_list.h"
 
 #include "command_list_internal.h"
@@ -5,6 +6,7 @@
 #include <d3d12.h>
 
 #include <atomic>
+
 
 namespace ndq
 {
@@ -22,9 +24,9 @@ namespace ndq
             mpList->Release();
         }
 
-        ID3D12GraphicsCommandList* GetRawCommandList() const
+        TRefCountPtr<ID3D12GraphicsCommandList> GetRawCommandList() const
         {
-            return mpList;
+            return TRefCountPtr<ID3D12GraphicsCommandList>(mpList);
         }
 
         void Open(ID3D12PipelineState* pState = nullptr)

@@ -42,6 +42,7 @@ namespace ndq
             Finalize();
 
             pDevice->Release();
+            pRawDevice.Reset();
             pSwapChain->Release();
             pGraphicsQueue->Release();
             pCopyQueue->Release();
@@ -78,6 +79,8 @@ namespace ndq
             IDXGIAdapter4* Adapter;
             Factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&Adapter));
             D3D12CreateDevice(Adapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&pDevice));
+
+            pRawDevice = pDevice;
 
             D3D12_COMMAND_QUEUE_DESC QueueDesc{};
             QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -141,9 +144,9 @@ namespace ndq
             MoveToNextFrame();
         }
 
-        ID3D12Device* GetRawDevice() const
+        TRefCountPtr<ID3D12Device> GetRawDevice() const
         {
-            return pDevice;
+            return pRawDevice;
         }
 
         void Wait(NDQ_COMMAND_LIST_TYPE type)
@@ -155,7 +158,7 @@ namespace ndq
         {
             auto Type = pList->GetType();
             auto TempList = pList->GetRawCommandList();
-            ID3D12CommandList* Lists[1] = { reinterpret_cast<ID3D12CommandList*> (TempList) };
+            ID3D12CommandList* Lists[1] = { reinterpret_cast<ID3D12CommandList*> (TempList.Get()) };
             switch (Type)
             {
             case NDQ_COMMAND_LIST_TYPE::GRAPHICS:
@@ -257,12 +260,13 @@ namespace ndq
             }
         }
 
-        ID3D12Resource* GetCurrentResource() const
+        TRefCountPtr<ID3D12Resource> GetCurrentResource() const
         {
-            return mRenderTargets[mFrameIndex];
+            return TRefCountPtr<ID3D12Resource>(mRenderTargets[mFrameIndex]);
         }
 
         ID3D12Device4* pDevice = nullptr;
+        TRefCountPtr<ID3D12Device> pRawDevice;
         IDXGISwapChain4* pSwapChain = nullptr;
 
         ID3D12CommandQueue* pGraphicsQueue = nullptr;
