@@ -1,8 +1,10 @@
 #include "ndq/ApplicationWindow.h"
 
-struct MainWindow : ndq::ApplicationWindow
+using namespace ndq;
+
+struct MainWindow : ApplicationWindow
 {
-    MainWindow() : ndq::ApplicationWindow(800, 600, L"Window") {}
+    MainWindow() : ApplicationWindow(800, 600, L"Window") {}
     void initialize() {}
     void update(float) {}
     void finalize() {}
