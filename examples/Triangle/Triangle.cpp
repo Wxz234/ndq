@@ -2,8 +2,8 @@
 #include "ndq/CommandList.h"
 #include "ndq/GraphicsDevice.h"
 
-#include "pixel.h"
-#include "vertex.h"
+#include "Pixel.h"
+#include "Vertex.h"
 
 #include <combaseapi.h>
 #include <d3d12.h>
@@ -22,13 +22,13 @@ struct MainWindow : ApplicationWindow
     void initialize()
     {
         auto rawDevice = (ID3D12Device*)GraphicsDevice::getGraphicsDevice()->getRawGraphicsDevice();
-        rawDevice->CreateRootSignature(1, VertexBlob, sizeof(VertexBlob), IID_PPV_ARGS(&mRootSignature));
+        rawDevice->CreateRootSignature(1, vertexBlob, sizeof(vertexBlob), IID_PPV_ARGS(&mRootSignature));
 
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
         psoDesc.InputLayout = { nullptr, 0 };
         psoDesc.pRootSignature = mRootSignature;
-        psoDesc.VS = CD3DX12_SHADER_BYTECODE(VertexBlob, sizeof(VertexBlob));
-        psoDesc.PS = CD3DX12_SHADER_BYTECODE(PixelBlob, sizeof(PixelBlob));
+        psoDesc.VS = CD3DX12_SHADER_BYTECODE(vertexBlob, sizeof(vertexBlob));
+        psoDesc.PS = CD3DX12_SHADER_BYTECODE(pixelBlob, sizeof(pixelBlob));
         psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
         psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
         psoDesc.SampleMask = 0xffffffff;
