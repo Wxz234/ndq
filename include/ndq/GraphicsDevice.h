@@ -8,6 +8,8 @@ namespace ndq
     class GraphicsDevice
     {
     public:
+        virtual ~GraphicsDevice() = default;
+
         virtual void* getRawGraphicsDevice() const = 0;
         virtual CommandList* createCommandList(CommandList::CommandListTypes type) = 0;
         virtual void destroyCommandList(CommandList* list) = 0;

@@ -5,6 +5,8 @@ namespace ndq
     class CommandList
     {
     public:
+        virtual ~CommandList() = default;
+
         enum CommandListTypes
         {
             CLT_GRAPHICS,

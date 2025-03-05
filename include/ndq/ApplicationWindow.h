@@ -7,6 +7,8 @@ namespace ndq
     class ApplicationWindow
     {
     public:
+        virtual ~ApplicationWindow() = default;
+
         int run();
         void createRenderWindow(void* instance);
         virtual void initialize() = 0;
