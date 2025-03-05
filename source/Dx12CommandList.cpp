@@ -58,7 +58,6 @@ namespace ndq
 
     void destroyCommandListFunction(CommandList* list)
     {
-        auto tempPtr = (Dx12CommandList*)list;
-        delete tempPtr;
+        delete list;
     }
 }
