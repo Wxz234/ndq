@@ -23,11 +23,16 @@ namespace ndq
     };
 }
 
-#define WIN_MAIN_MACRO(WindowClass) \
-struct HINSTANCE__;  \
-int __stdcall wWinMain(HINSTANCE__* instance, HINSTANCE__* prevInstance, wchar_t* cmdLine, int cmdShow) \
-{ \
-    WindowClass myWindow; \
-    myWindow.createRenderWindow(instance); \
-    return myWindow.run(); \
-}
+#define NDQ_WIN_MAIN_MACRO(WindowClass)        \
+    struct HINSTANCE__;                        \
+    int __stdcall wWinMain(                    \
+        HINSTANCE__* instance,                 \
+        HINSTANCE__* prevInstance,             \
+        wchar_t* cmdLine,                      \
+        int cmdShow                            \
+    )                                          \
+    {                                          \
+        WindowClass myWindow;                  \
+        myWindow.createRenderWindow(instance); \
+        return myWindow.run();                 \
+    }

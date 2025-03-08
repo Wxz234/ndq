@@ -10,4 +10,4 @@ struct MainWindow : ApplicationWindow
     void finalize() {}
 };
 
-WIN_MAIN_MACRO(MainWindow)
+NDQ_WIN_MAIN_MACRO(MainWindow)

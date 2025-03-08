@@ -92,4 +92,4 @@ struct MainWindow : ApplicationWindow
     CommandList* mCmdList;
 };
 
-WIN_MAIN_MACRO(MainWindow)
+NDQ_WIN_MAIN_MACRO(MainWindow)

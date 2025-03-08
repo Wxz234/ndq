@@ -12,3 +12,4 @@ execute_process(
 add_subdirectory("source")
 add_subdirectory("examples/Window")
 add_subdirectory("examples/Triangle")
+add_subdirectory("examples/Mesh")

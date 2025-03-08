@@ -34,7 +34,7 @@ namespace ndq
     class Dx12Device : public GraphicsDevice
     {
     public:
-        Dx12Device() {}
+        Dx12Device() : GraphicsDevice() {}
 
         ~Dx12Device()
         {
