@@ -20,8 +20,6 @@ namespace ndq
         virtual void setCurrentResourceRenderTarget(CommandList* list) = 0;
         virtual void clearCurrentResourceRenderTargetView(CommandList* list, const float colorRGBA[4]) = 0;
 
-        NDQ_DISABLE_COPY_AND_MOVE(GraphicsDevice)
-
         static GraphicsDevice* getGraphicsDevice();
     };
 }
