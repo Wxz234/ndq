@@ -3,7 +3,7 @@
 #include "ndq/Defs.h"
 #include "ndq/Type.h"
 
-namespace Orc
+namespace ndq
 {
     class SceneNode;
 
